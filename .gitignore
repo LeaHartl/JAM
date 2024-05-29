@@ -4,5 +4,6 @@ jamtalhydams/
 dataMerged.csv
 AWS_Jam.py
 plot_lter_anna.py
+.gitignore
 **/.DS_Store
 **/__pycache__/
