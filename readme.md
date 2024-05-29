@@ -1,4 +1,4 @@
-# Code to process AWS data from Jamtal provided by HD Tirol  
+# Code to process AWS data from Jamtal
 
 ## step 1 -  convert .zrx files to a merged csv file(s)      
 **AWS_Jam_zrxtocsv.py:**   
