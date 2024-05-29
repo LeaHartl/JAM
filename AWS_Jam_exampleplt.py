@@ -14,7 +14,7 @@ data['LWin_Cor'] = data['LWin']+5.67*10**-8 * (data['SensorTemp']+273.15)**4
 data['LWout_Cor'] = data['LWout']+5.67*10**-8 * (data['SensorTemp']+273.15)**4
 
 
-# function to make the plot:
+# function to make a time series plot for some of teh parameters:
 def timeseriesplot(df):
     # resample hourly data to daily and monthly values:
     # NO CHECKS FOR INCOMPLETE DAYS OR MONTHS - ADAPT AS NEEDED
@@ -83,8 +83,57 @@ def timeseriesplot(df):
     return()
 
 
-# call the plotting function and save the figure
+
+# function to plot precipitation and snow depth
+def timeseries_precip(df):
+    # resample hourly data to daily and monthly values:
+    # NO CHECKS FOR INCOMPLETE DAYS OR MONTHS - ADAPT AS NEEDED
+    # daily means:
+    df_mean = df.resample('d').mean()
+    # monthly means:
+    df_mnth = df.resample('m').mean()
+
+    # precip: make monthly and daily sums (!)
+    df_mnth_pr = df[['Precip']].resample('m').sum()
+    df_day_pr = df[['Precip']].resample('d').sum()
+    
+    # initialize a figrue with two subplots arranged underneath each other
+    fig, ax = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+    ax = ax.flatten()
+
+    # precip
+    ax[0].bar(df_mnth_pr.index, df_mnth_pr['Precip'], color='k', width=20)
+    ax[0].set_title('Precipitation (monthly sum)')
+    ax[0].set_ylabel('mm')
+    ax[0].grid('both')
+
+    ax[1].set_title('Snowdepth')
+    # ax[1].legend(loc='upper left')
+    ax[1].set_ylabel('cm')
+    # ax[0].set_ylim([-25, 30])
+    ax[1].grid('both')
+
+
+    # snow depth
+    ax[1].plot(df_mnth.index, df_mnth.Snowdepth, c='k', label='monthly mean')
+    ax[1].plot(df_mean.index, df_mean.Snowdepth, c='k', linestyle='--', linewidth=0.5, label='daily mean')
+    ax[1].set_title('Snowdepth')
+    ax[1].legend(loc='upper left')
+    ax[1].set_ylabel('cm')
+    # ax[0].set_ylim([-25, 30])
+    ax[1].grid('both')
+
+    
+    fig.savefig('figs/JAM_precip_snow.png', bbox_inches='tight', dpi=300)
+
+    return()
+
+
+
+# call the plotting functions
 timeseriesplot(data)
+timeseries_precip(data)
+
 
 
 
