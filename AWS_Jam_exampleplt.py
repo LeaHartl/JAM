@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
+from scipy.stats import circmean
 
 # load data
 filename = 'dataMerged.csv'
@@ -12,7 +13,11 @@ data = pd.read_csv(filename, index_col=0, parse_dates=True, na_values=-777.0)
 # Correction with sensor temperature!
 data['LWin_Cor'] = data['LWin']+5.67*10**-8 * (data['SensorTemp']+273.15)**4
 data['LWout_Cor'] = data['LWout']+5.67*10**-8 * (data['SensorTemp']+273.15)**4
+print(data.head())
 
+
+def circular_mean(x):
+    return round(np.rad2deg(circmean(np.deg2rad(x['WindDir'].values))),2)
 
 # function to make a time series plot for some of teh parameters:
 def timeseriesplot(df):
@@ -33,8 +38,8 @@ def timeseriesplot(df):
     # df_mnth['year'] = df_mnth.index.year
     # df_mnth_p = df_mnth.pivot(index='month', columns='year', values='AirTemp')
 
-    # initialize a figrue with four subplots arranged underneath each other
-    fig, ax = plt.subplots(4, 1, figsize=(12, 8), sharex=True)
+    # initialize a figrue with five subplots arranged underneath each other
+    fig, ax = plt.subplots(5, 1, figsize=(12, 8), sharex=True)
     ax = ax.flatten()
 
     # air temperature
@@ -76,6 +81,20 @@ def timeseriesplot(df):
     ax[3].set_ylabel('m/s')
     # ax[3].set_ylim([0, 18])
     ax[3].set_title('Wind speed')
+
+
+    # wind dir - circmean
+
+    wdir = df.resample('d').apply(circular_mean)
+    # circular mean:
+    ax[4].scatter(wdir.index, wdir.values, c='k', label='daily mean wind direction', s=2)
+    # non circular mean: uncomment to see how it compares
+    # ax[4].scatter(df_mean.index, df_mean.WindDir, c='g', label='non-circular mean', s=2)
+    ax[4].scatter(df.index, df.WindDir, c='r', label='wind direction, 10min', s=0.005)
+    ax[4].set_ylim(0, 360)
+    ax[4].set_title('Wind direction')
+    ax[4].legend()
+    ax[4].grid('both')
 
     # save the figure to a folder called "figs" - adjust path and filename as needed!
     fig.savefig('figs/JAM_meteo_daily_monthly.png', bbox_inches='tight', dpi=300)
