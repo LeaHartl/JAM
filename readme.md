@@ -11,13 +11,19 @@
 + Saves a new csv file with all parameters  
 
 ## step 2 - plot some data
-**AWS_Jam_exampleplt.py:**
+**AWS_Jam_exampleplt.py:**     
 + Loads the merged csv file produced earlier ("dataMerged.csv")
 + Makes a simple time series plot of air temperature, global radiation, rel. humidity, and windspeed, showing daily and monthly means. 
 + Makes another time series plot of monthly precip sums and snow depth.
 + Saves the plots to a folder called "figs"         
 
-**AWS_Jam_Radiationdata.py:**
+**Jam_discharge.py:**    
++ loads the discharge data sent by Klara
++ loads AWS data
++ resamples to daily values and merges the data on the date
++ makes a plot of precip, snow height, and discharge
+
+**AWS_Jam_Radiationdata.py:**    
 + Loads the merged csv file produced earlier ("dataMerged.csv")
 + Makes two plots showing various radiation parameters
 + Saves the plots to a folder called "figs"
