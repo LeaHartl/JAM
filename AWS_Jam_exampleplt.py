@@ -90,7 +90,7 @@ def timeseriesplot(df):
     ax[4].scatter(wdir.index, wdir.values, c='k', label='daily mean wind direction', s=2)
     # non circular mean: uncomment to see how it compares
     # ax[4].scatter(df_mean.index, df_mean.WindDir, c='g', label='non-circular mean', s=2)
-    ax[4].scatter(df.index, df.WindDir, c='r', label='wind direction, 10min', s=0.005)
+    ax[4].scatter(df.index, df.WindDir, c='r', label='wind direction, 1 h', s=0.005)
     ax[4].set_ylim(0, 360)
     ax[4].set_title('Wind direction')
     ax[4].legend()
