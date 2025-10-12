@@ -27,3 +27,6 @@
 + Loads the merged csv file produced earlier ("dataMerged.csv")
 + Makes two plots showing various radiation parameters
 + Saves the plots to a folder called "figs"
+
+
+# Folder "MB_data" contains scripts to deal with mass balance data
