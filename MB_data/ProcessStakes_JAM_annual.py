@@ -21,7 +21,7 @@ def makeTableAnnual(yrs, fname, gl):
     for yr in yrs:
         print(yr)
         temp = pd.read_excel(fname, str(yr), header=0)
-        # print(temp)
+        print(temp)
         basics = pd.DataFrame(columns=['name'])
         basics['name'] = temp[temp.columns.values[0]]
         basics['x_pos'] = temp['X_coord']
@@ -31,9 +31,20 @@ def makeTableAnnual(yrs, fname, gl):
         # 4 stands for estimated from closest measurement
         basics['position_quality'] = 4
 
+        if yr < 2025:
         # raw mass balance in cm ice is not available for the fixed dates because only the final
         # corrected values was documented.
-        basics['mb_raw'] = np.nan 
+            basics['mb_raw'] = np.nan 
+
+        if yr >= 2025:
+            basics['mb_raw'] = temp['mm_WE_nosnow_floating']
+
+        if yr < 2020:
+            basics['source'] = 'AF' 
+        if (yr >= 2020) & (yr < 2025):
+            basics['source'] = 'LH, AF'
+        if yr >= 2025:
+            basics['source'] = 'MVL, LH, AF'
 
         # mm WE value interpolated from last observation to end of hydrol. year.
         # this is always in the last column in the excel files. Make sure there are no
@@ -68,7 +79,7 @@ def makeTableAnnual(yrs, fname, gl):
     stks_annual['date_quality'] = 1 # start date and end date exactly known for fixed date stakes.
 
     # set values for colums that always stay the same:
-    stks_annual['source'] = 'AF' 
+    
 
     stks_annual = stks_annual[['name', 'date0', 'date1', 'period', 'date_quality',
                                    'x_pos', 'y_pos', 'z_pos', 'position_quality', 'mb_raw', 'density',
@@ -173,8 +184,9 @@ def makeTablePits_fixed(yrs, folder_pits, gl):
 def writetofile(dat, what, gl, forheader, y):
     if what == 'annual':
         # header1 = '# Mass Balance; '+forheader+' annual fixed date'
-        fn = 'out/Vorlage_'+gl+'_MB_annual_'+y+'.csv'
-        fnex = 'out/Vorlage_'+gl+'_MB_annual_'+y
+        # fn = 'out/Vorlage_'+gl+'_MB_annual_'+y+'.csv'
+        fn = '/Users/leahartl/Desktop/JAM/Jam_MB_annual_'+y+'.csv'
+        fnex = '/Users/leahartl/Desktop/JAM/Jam_MB_annual_'+y
     if what == 'seasonal':
         # header1 = '# Mass Balance; '+forheader+' winter fixed date'
         fn = 'out/Vorlage_'+gl+'_MB_winter_'+y+'.csv'
@@ -233,8 +245,8 @@ def writetofile(dat, what, gl, forheader, y):
 
 gl = 'JAM'
 # read stakes excel file (annual data)
-fn = '/Users/leahartl/Desktop/LTER/AGM/JAM/Pegel_Jam.xlsx'
-yrs = np.arange(1989, 2025)
+fn = '/Users/leahartl/Desktop/JAM/Pegel_Jam.xlsx'
+yrs = np.arange(1989, 2026)
 
 
 
@@ -258,7 +270,7 @@ data_annual_u = unc.uncertainties(data_annual, 'annual')
 print(data_annual_u)
 
 
-writetofile(data_annual_u, 'annual', gl, 'Jamtalferner', '2005')
+writetofile(data_annual_u, 'annual', gl, 'Jamtalferner', '2025')
 
 
 

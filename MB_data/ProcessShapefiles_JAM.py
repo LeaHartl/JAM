@@ -18,7 +18,7 @@ def plot_annual_seasonal_elevation(an, gl, yrs):# probesVK, probesMWK):
 
     fig, ax = plt.subplots(1, 1, figsize=(3, 8), sharey=True)
 
-    yrs = np.arange(1989, 2025)
+    yrs = np.arange(1989, 2026)
 
     clrs = cm.cividis(np.linspace(0, 0.9, len(yrs)))
     lns = []
@@ -65,7 +65,7 @@ def plot_annual_seasonal_elevation(an, gl, yrs):# probesVK, probesMWK):
 
 
     fig.legend(handles=lns, loc='lower left', bbox_to_anchor=(0.9, 0.2), ncol=2)
-    fig.savefig('annual_seasonal_elevation_'+gl+'.png', bbox_inches='tight', dpi=300)
+    fig.savefig('/Users/leahartl/Desktop/JAM/annual_seasonal_elevation_'+gl+'.png', bbox_inches='tight', dpi=300)
 
 
 
@@ -188,12 +188,12 @@ def makeplots(df, stakes_pits, vmin, vmax, cmap, what):
                 a.set_facecolor('grey')
                 # a.set_xlabel('°')
 
-        fig.savefig('test_maps_subplots.png', dpi=300, bbox_inches='tight')
+        fig.savefig('/Users/leahartl/Desktop/JAM/test_maps_subplots.png', dpi=300, bbox_inches='tight')
 
 
 
 def glacierwide():
-    glacierwide = pd.read_csv('/Users/leahartl/Desktop/Jam2024/Jam_mb_timeseries.csv')
+    glacierwide = pd.read_csv('/Users/leahartl/Desktop/JAM/Jam_mb_timeseries.csv')
     # print(glacierwide)
     # print(MB[['YEAR', 'WINTER_BALANCE']])
     # MB[['YEAR', 'WINTER_BALANCE', 'SUMMER_BALANCE', 'ANNUAL_BALANCE']] = MB[['YEAR', 'WINTER_BALANCE', 'SUMMER_BALANCE', 'ANNUAL_BALANCE']] / 1000
@@ -217,7 +217,7 @@ def glacierwide():
     ax3.grid('both')
     ax3.set_xticks(np.arange(1988, 2026, 2))
 
-    fig.savefig('barplot_jam.png', dpi=300, bbox_inches='tight')
+    fig.savefig('/Users/leahartl/Desktop/JAM/barplot_jam.png', dpi=300, bbox_inches='tight')
 
     
 
@@ -225,27 +225,26 @@ def glacierwide():
 # path1 = 'olderdata/'
 # fls1 = glob.glob(path1+'/*.shp')
 
-path1 = 'shapes2/'
-fls1 = glob.glob(path1+'/*.geojson')
+# path1 = 'shapes2/'
+# fls1 = glob.glob(path1+'/*.geojson')
 
 
-dfAnnual = pd.DataFrame(columns=['fname', 'year'])
-dfAnnual['fname'] = fls1
+# dfAnnual = pd.DataFrame(columns=['fname', 'year'])
+# dfAnnual['fname'] = fls1
 
 
-# print(dfAnnual)
-# dfAnnual['year1'] = dfAnnual['fname'].str[10:12]#.astype(int) 
-dfAnnual['year'] = dfAnnual['fname'].str[-12:-8].astype(int) 
-dfAnnual['type'] = 'annual'
+# # print(dfAnnual)
+# # dfAnnual['year1'] = dfAnnual['fname'].str[10:12]#.astype(int) 
+# dfAnnual['year'] = dfAnnual['fname'].str[-12:-8].astype(int) 
+# dfAnnual['type'] = 'annual'
  
-dfAnnual.sort_values(by=['year'], inplace=True)
-# print(dfAnnual)
+# dfAnnual.sort_values(by=['year'], inplace=True)
+# # print(dfAnnual)
 
 
-pathAnnualPoint_JAM = '/Users/leahartl/Desktop/LTER/AGM/JAM/out/Vorlage_JAM_MB_annual_2005.csv'
+pathAnnualPoint_JAM = '/Users/leahartl/Desktop/JAM/Jam_MB_annual_2025.csv'
 pts_JAM = loadPoints(pathAnnualPoint_JAM, 'JAM', '4326')
 print(pts_JAM)
-
 
 cmap_s = 'RdYlBu'#'coolwarm_r'
 vmin_s = -6.00
@@ -256,7 +255,7 @@ vmax_s = 2.00
 
 
 # make scatter plot of annual MB vs elevation:
-plot_annual_seasonal_elevation(pts_JAM, 'JAM', np.arange(1989, 2024))
+plot_annual_seasonal_elevation(pts_JAM, 'JAM', np.arange(1989, 2026))
 # glacierwide()
 plt.show()
 stop
