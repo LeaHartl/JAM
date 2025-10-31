@@ -17,8 +17,8 @@ import glob
 
 # set some file paths:
 # stakes with elevation and WW: 
-stakesAnnual = gpd.read_file('/Users/leahartl/Desktop/Jam2025/sommer/Pegel_Jam_2025_ele.shp')
-stakesAnnual['melt'] = (stakesAnnual['mm_we_with']*-1).round(decimals=0).astype(int)
+stakesAnnual = gpd.read_file('/Users/leahartl/Desktop/Jam2025/sommer/Pegel2025.geojson')
+stakesAnnual['melt'] = (stakesAnnual['mm_we_withsnowcorr_300kgm_3_fixed']/10).round(decimals=0).astype(int)
 # contourlines 2017/18 DEM: 
 contours = gpd.read_file('/Users/leahartl/Desktop/JAM/contour_poly_201718_50m.shp')
 raster = '/Users/leahartl/Desktop/JAM/JamDEM201718.tif'
@@ -122,7 +122,7 @@ def makeplots(df_all, raster):
 
 
 
-        fig.savefig('/Users/leahartl/Desktop/Jam2025/sommer/figures_ablesungen/karte_'+day.strftime('%Y_%m_%d')+'.png', bbox_inches='tight', dpi=200)
+        fig.savefig('/Users/leahartl/Desktop/Jam2025/sommer/figures_ablesungen/karte_CM_'+day.strftime('%Y_%m_%d')+'_COR.png', bbox_inches='tight', dpi=200)
 
         # plt.show()
 

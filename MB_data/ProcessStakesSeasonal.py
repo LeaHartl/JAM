@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import datetime as dt
 import geopandas as gpd
+import rasterio
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
@@ -100,8 +101,6 @@ ax.legend()
 fig.savefig('/Users/leahartl/Desktop/Jam2025/sommer/seasonalablation_stakes'+str(yr)+'.png', dpi=200, bbox_inches='tight')
 
 
-
-
 coords['date'] = dates
 coords['name'] = stks
 coords['X_coord'] = xps
@@ -112,17 +111,32 @@ coords['Y_coord'] = yps
 stakedata = pd.read_csv('/Users/leahartl/Desktop/Jam2025/sommer/summary2025/Sheet 2-Table 1.csv')
 
 coords = coords.merge(stakedata, left_on='name', right_on='P')
-coords = coords[['name', 'X_coord', 'Y_coord',  'mm_WE_nosnow_floating',  'mm_we_withsnowcorr_300kgm_3_fixed']]
+coords = coords[['name', 'X_coord', 'Y_coord',  'mm_WE_nosnow_floating',  'mm_we_withsnowcorr_300kgm_3_fixed', 'snowheight_cm']]
+coords['snow_density_kgm3'] = 300
+gdf = gpd.GeoDataFrame(
+    coords, geometry=gpd.points_from_xy(coords.X_coord, coords.Y_coord), crs="EPSG:4326"
+)
 
-# gdf = gpd.GeoDataFrame(
-#     coords, geometry=gpd.points_from_xy(coords.x, coords.y), crs="EPSG:4326"
-# )
-# gdf.to_file('/Users/leahartl/Desktop/Jam2025/sommer/Pegel2025.geojson')
+# Open the DEM raster
+raster = '/Users/leahartl/Desktop/JAM/JamDEM201718.tif'
+src = rasterio.open(raster)
+print(src.crs)
+# reproject points to match raster
+gdf = gdf.to_crs(src.crs)
+
+new_gdf = gdf.copy()  # do not change original gdf
+new_coords = gdf.get_coordinates().values
+# extract the raster values
+new_gdf['Z_value'] = [x[0] for x in src.sample(new_coords)]
+# save to file:
+new_gdf.to_file('/Users/leahartl/Desktop/Jam2025/sommer/Pegel2025.geojson')
 
 # open file that has elevation data (extracted from 2017/18 DEM file), rename cols and resave fro excl update
-gdf2 = gpd.read_file('/Users/leahartl/Desktop/Jam2025/sommer/Pegel_Jam_2025_ele.shp')
-forcsv = gdf2[['name', 'x', 'y', 'ele1', 'mm_WE_nosn', 'mm_we_with']]
-forcsv = forcsv.rename(columns={"ele1": "Z_value", "mm_WE_nosn": "mm_WE_nosnow_floating", "mm_we_with": "mm_we_withsnowcorr_300kgm_3_fixed"})
+gdf2 = gpd.read_file('/Users/leahartl/Desktop/Jam2025/sommer/Pegel2025.geojson')
+print(gdf2)
+
+forcsv = gdf2[['name', 'X_coord', 'Y_coord', 'Z_value', 'mm_WE_nosnow_floating', 'mm_we_withsnowcorr_300kgm_3_fixed']]
+#forcsv = forcsv.rename(columns={"ele1": "Z_value", "mm_WE_nosn": "mm_WE_nosnow_floating", "mm_we_with": "mm_we_withsnowcorr_300kgm_3_fixed"})
 print(forcsv)
 forcsv.to_csv('/Users/leahartl/Desktop/Jam2025/sommer/stakes_2025_for_table.csv')
 plt.show()

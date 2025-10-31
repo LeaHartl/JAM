@@ -16,8 +16,8 @@ from rasterio.plot import show
 
 # set file paths:
 # stakes with elevation and WW: 
-stakes = gpd.read_file('/Users/leahartl/Desktop/Jam2025/sommer/Pegel_Jam_2025_ele.shp')
-stakes['melt'] = (stakes['mm_we_with']*-1).round(decimals=0).astype(int)
+stakes = gpd.read_file('/Users/leahartl/Desktop/Jam2025/sommer/Pegel2025.geojson')
+stakes['melt'] = (stakes['mm_we_withsnowcorr_300kgm_3_fixed']/10).round(decimals=0).astype(int)
 # contourlines 2017/18 DEM: 
 contours = gpd.read_file('/Users/leahartl/Desktop/JAM/contour_poly_201718_50m.shp')
 
@@ -51,7 +51,7 @@ for x, y, label, nm in zip(stakes.geometry.x, stakes.geometry.y, stakes['melt'],
     # print (nm)
     # stop
     if (nm == 1):
-        print('yes')
+        #print('yes')
         xytext = (400, 8)
     if (nm == 11):
         xytext = (-30, 8)
@@ -68,9 +68,9 @@ for x, y, label, nm in zip(stakes.geometry.x, stakes.geometry.y, stakes['melt'],
 
 ax.set_xlim([-14500, -11300])
 ax.set_ylim([189900, 192000])
-ax.set_title('Annual point mass balance 2024/25 (fixed date, mm w.e.)')
+ax.set_title('Annual point mass balance 2024/25 (fixed date, cm w.e.)')
 
-fig.savefig('/Users/leahartl/Desktop/Jam2025/sommer/karte_annual_fixedate.png', bbox_inches='tight', dpi=200)
+fig.savefig('/Users/leahartl/Desktop/Jam2025/sommer/karte_annual_fixedate_CM_COR.png', bbox_inches='tight', dpi=200)
 
 plt.show()
 
