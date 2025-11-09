@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 import numpy as np
 import pandas as pd
-import fiona
 import geopandas as gpd
 import json
 import matplotlib.pyplot as plt
@@ -12,6 +11,9 @@ import matplotlib.dates as mdates
 from shapely.geometry import Point
 import gpxpy
 import gpxpy.gpx
+
+import rasterio as rio
+import rioxarray as rxr
 
 # set file name:
 # gpx file from lea's garmin inreach:
@@ -79,14 +81,25 @@ data_gdf = gpd.GeoDataFrame(data, geometry=gpd.points_from_xy(data.lon, data.lat
 data_gdf['WW'] = data_gdf['SH']*10*0.369
 print(data_gdf)
 
-# save to new shape file
-data_gdf.to_file("sondierungen_20250426.shp")
-data_gdf.loc[data_gdf['name']=='s01 18'].to_file("schacht_20250426.shp")
 
+# extract elevation data from DEM:
+raster = '/Users/leahartl/Desktop/JAM/JamDEM201718.tif'
+src = rio.open(raster)
+data_gdf = data_gdf.to_crs(src.crs)
+
+new_gdf = data_gdf.copy()  # do not change original gdf
+new_coords = data_gdf.get_coordinates().values
+# extract the raster values
+new_gdf['Z_value'] = [x[0] for x in src.sample(new_coords)]
+# save to new shape file
+new_gdf.to_file('/Users/leahartl/Desktop/Jam2025/winter/sondierungen_20250426.shp')
+new_gdf.loc[data_gdf['name']=='s01 18'].to_file("/Users/leahartl/Desktop/Jam2025/winter/schacht_20250426.shp")
+# also save as csv file: 
+new_gdf[['time', 'name', 'lat', 'lon', 'wer', 'SH', 'WW', 'Z_value']].to_csv('/Users/leahartl/Desktop/Jam2025/winter/sondierungen_20250426.csv')
 
 # make a plot:
 fig, ax = plt.subplots(1, 1, figsize=(10, 8))
-data_gdf.plot(ax=ax, column='WW', legend=True, label='WW [mm w.e.]')
+new_gdf.to_crs(epsg=4326).plot(ax=ax, column='WW', legend=True, label='WW [mm w.e.]')
 
 outline = gpd.read_file('/Users/leahartl/Desktop/Jam2023/outlines/Jamtalferner/jam22_sentinel_okt23.shp')
 outline.to_crs(epsg=4326, inplace=True)
@@ -96,7 +109,7 @@ contours = gpd.read_file('/Users/leahartl/Desktop/Jam2025/ContourPoly_201718.shp
 contours.to_crs(epsg=4326, inplace=True)
 contours.boundary.plot(ax=ax, linewidths=0.2, color='grey')
 
-data_gdf.loc[data_gdf['name']=='s01 18'].plot(ax=ax, marker='*', color='red', markersize=24)
+new_gdf.loc[data_gdf['name']=='s01 18'].plot(ax=ax, marker='*', color='red', markersize=24)
 
 ax.set_xlim([10.14, 10.19])
 ax.set_ylim([46.848, 46.868])
@@ -104,5 +117,5 @@ ax.set_ylim([46.848, 46.868])
 
 plt.show()
 
-fig.savefig('sondierungen_20250426.png', bbox_inches='tight', dpi=200)
+fig.savefig('/Users/leahartl/Desktop/Jam2025/winter/sondierungen_20250426.png', bbox_inches='tight', dpi=200)
 

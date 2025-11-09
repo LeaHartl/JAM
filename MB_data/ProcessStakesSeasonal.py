@@ -84,7 +84,7 @@ for i, fl in enumerate(df1['fln'].values):
 
     print(sub)
     print(stk)
-
+    
     ax.plot(sub.index.values, sub['Abl. seit Herbst'].values, label=stk, color=clr, linestyle=LINE_STYLES[i%NUM_STYLES])
     ax.plot(sub.index.values, sub['Abl. seit Herbst'].values, marker='o', color=clr, linestyle=LINE_STYLES[i%NUM_STYLES])
 

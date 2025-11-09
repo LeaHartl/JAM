@@ -118,19 +118,20 @@ def loadPoints(pathStakes, gl, epsg):
 
 
 # read geojson
-def makeplots(df, stakes_pits, vmin, vmax, cmap, what):
+def makeplots(df, stakes_pits, vmin, vmax, cmap, what, yrcur):
 
     lns = []
     pts = []
 
-    yrs = np.arange(1989, 2025)
-    row = 4
-    col = 9
+    yrs = np.arange(1989, int(yrcur)+1)
+    # adjust row and col number each year
+    row = 6
+    col = 7
     # print(an_rn)
     # an_rn['mb_we_cm'] = an_rn['mb_we']/10
 
 
-    fig, ax = plt.subplots(row, col, figsize=(14, 5), sharey=True, sharex=True)
+    fig, ax = plt.subplots(row, col, figsize=(12, 10), sharey=True, sharex=True)
     ax = ax.flatten()
 
     #yrs = np.arange(1989, 1992)#2025)
@@ -141,7 +142,7 @@ def makeplots(df, stakes_pits, vmin, vmax, cmap, what):
 
         f = df['fname'].loc[df['year']==y].values[0]
         shp = gpd.read_file(f)
-        print(shp.head())
+        #print(shp.head())
 
         shp.to_crs(epsg=4326, inplace=True)
 
@@ -163,9 +164,9 @@ def makeplots(df, stakes_pits, vmin, vmax, cmap, what):
             #shp_outline.boundary.plot(ax=ax[i], colors='k', zorder=20)
             an_rn_stks =an_rn_temp.loc[an_rn_temp.measurement_type==1]
             an_rn_pits =an_rn_temp.loc[an_rn_temp.measurement_type==2]
-            print(an_rn_stks[['mb_we', 'geometry']])
-            print(an_rn_pits[['mb_we', 'geometry']])
-            print(an_rn_stks.geometry.x.sum())
+            # print(an_rn_stks[['mb_we', 'geometry']])
+            # print(an_rn_pits[['mb_we', 'geometry']])
+            # print(an_rn_stks.geometry.x.sum())
             if an_rn_stks.geometry.x.sum()>0:
                 an_rn_stks.plot(ax=ax[i], column='mb_we', markersize=10, cmap=cmap, norm=divnorm, legend=False, edgecolor='k',  linewidth=0.5, zorder=100)#norm=divnorm, 
             if len(an_rn_pits)>0:
@@ -188,7 +189,15 @@ def makeplots(df, stakes_pits, vmin, vmax, cmap, what):
                 a.set_facecolor('grey')
                 # a.set_xlabel('°')
 
-        fig.savefig('/Users/leahartl/Desktop/JAM/test_maps_subplots.png', dpi=300, bbox_inches='tight')
+            ax[-1].set_axis_off()
+            ax[-2].set_axis_off()
+            ax[-3].set_axis_off()
+            ax[-4].set_axis_off()
+            ax[-5].set_axis_off()
+
+
+
+        fig.savefig('/Users/leahartl/Desktop/JAM/test_maps_subplots'+yrcur+'.png', dpi=300, bbox_inches='tight')
 
 
 
@@ -225,21 +234,21 @@ def glacierwide():
 # path1 = 'olderdata/'
 # fls1 = glob.glob(path1+'/*.shp')
 
-# path1 = 'shapes2/'
-# fls1 = glob.glob(path1+'/*.geojson')
+path1 = '/Users/leahartl/Desktop/LTER/AGM/JAM/shapes2'
+fls1 = glob.glob(path1+'/*.geojson')
 
 
-# dfAnnual = pd.DataFrame(columns=['fname', 'year'])
-# dfAnnual['fname'] = fls1
+dfAnnual = pd.DataFrame(columns=['fname', 'year'])
+dfAnnual['fname'] = fls1
 
 
-# # print(dfAnnual)
-# # dfAnnual['year1'] = dfAnnual['fname'].str[10:12]#.astype(int) 
-# dfAnnual['year'] = dfAnnual['fname'].str[-12:-8].astype(int) 
-# dfAnnual['type'] = 'annual'
+# print(dfAnnual)
+# dfAnnual['year1'] = dfAnnual['fname'].str[10:12]#.astype(int) 
+dfAnnual['year'] = dfAnnual['fname'].str[-12:-8].astype(int) 
+dfAnnual['type'] = 'annual'
  
-# dfAnnual.sort_values(by=['year'], inplace=True)
-# # print(dfAnnual)
+dfAnnual.sort_values(by=['year'], inplace=True)
+# print(dfAnnual)
 
 
 pathAnnualPoint_JAM = '/Users/leahartl/Desktop/JAM/Jam_MB_annual_2025.csv'
@@ -250,10 +259,10 @@ cmap_s = 'RdYlBu'#'coolwarm_r'
 vmin_s = -6.00
 vmax_s = 2.00
 
-# makeplots(dfAnnual, pts_JAM, vmin_s, vmax_s, cmap_s, 'annual')
+makeplots(dfAnnual, pts_JAM, vmin_s, vmax_s, cmap_s, 'annual', '2025')
+plt.show()
 
-
-
+stop
 # make scatter plot of annual MB vs elevation:
 plot_annual_seasonal_elevation(pts_JAM, 'JAM', np.arange(1989, 2026))
 # glacierwide()
