@@ -78,6 +78,7 @@ data = pd.read_csv(csvfile)
 data.drop(columns='geometry', inplace=True)
 
 data_gdf = gpd.GeoDataFrame(data, geometry=gpd.points_from_xy(data.lon, data.lat), crs="EPSG:4326")
+# density from snow pit:
 data_gdf['WW'] = data_gdf['SH']*10*0.369
 print(data_gdf)
 

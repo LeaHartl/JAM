@@ -116,7 +116,8 @@ def makeMBTables(dataS, sumbalance, bquer, bw, bs, suffix):
 
         fortable['Fläche'] = (fortable['Fläche']*1e-6).astype(float).round(decimals=3)
         fortable['balance'] = (fortable['balance']*1e-3).astype(float).round(decimals=3)
-        fortable[['b', 'b_wi', 'b_so']] = fortable[['b', 'b_wi', 'b_so']].round(decimals=0).astype(int)
+        fortable[['b', 'b_wi', 'b_so']] = fortable[['b', 'b_wi', 'b_so']].astype(float).round(decimals=0).astype(int)
+
 
     # for sub-parts only use annual balance:
     else:
@@ -139,6 +140,7 @@ def makeMBTables(dataS, sumbalance, bquer, bw, bs, suffix):
 
     print(fortable.to_latex(index=False))
     fortable.to_latex('/Users/leahartl/Desktop/Jam2025/Bericht/table_MB'+suffix+'.txt', index=False)
+    fortable.to_csv('/Users/leahartl/Desktop/Jam2025/Bericht/table_MB'+suffix+'.csv', index=False)
 
     return(fortable)
 
@@ -239,7 +241,7 @@ def StripesPlot(sumstats, curyear):
     st.loc[0, :] = sumstats
 
     data = pd.concat([data, st])
-    data[['ba', 'b', 'bw', 'bs']] = data[['ba', 'b', 'bw', 'bs']].round(decimals=0).astype(int)
+    data[['ba', 'b', 'bw', 'bs']] = data[['ba', 'b', 'bw', 'bs']].astype(float).round(decimals=0).astype(int)
     data[['Sc', 'Sa', 'S', 'B']] = data[['Sc', 'Sa', 'S', 'B']].astype(float).round(decimals=3)
     data[['Ba']] = data[['Ba']].astype(float).round(decimals=1)
 
@@ -310,7 +312,7 @@ def mainMassBalance(zones):
     bqueracc = (accb / accarea) * 1000.0 if accarea != 0 else float('nan')
     SczuS = accarea / total_area if total_area != 0 else float('nan')
 
-    # Define zone centers
+    # Define zones
     zone_bins = np.arange(zones['elev'].min(), zones['elev'].max()+50, 50)
 
     # Aggregate sums by zone

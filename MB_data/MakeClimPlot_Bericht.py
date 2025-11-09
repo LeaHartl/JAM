@@ -251,7 +251,6 @@ def Regenmesser():
 Regenmesser()
 
 
-stop
 # load the Galtür data, compute normals and deviations, make table for the report
 cur_year, cur_yearM, climtable = loadData(curyear)
 

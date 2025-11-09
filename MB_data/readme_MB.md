@@ -24,6 +24,10 @@
 + loads elevation zones	
 + produces winter massbalance output per elevation zones and saves to tables (excel, csv, latex)	
 
+**Winter_Abb.py**
++ makes a plot for the report showing the probe points and pit location on a map
+
+
 **Jam_Sommer.py**	
 + loads the shapefile of MB isolines and elevations zones produces in GIS 	
 + processes the file to make MB per elevations zones	
@@ -37,4 +41,12 @@
 **MakeClimPlot_Bericht.py**		
 + makes the climate plot and tables using Galtür data pulled from Geosphere API and daily data for Jamtal provided by HD.
 + makes latex table of excel with Regenmesser data. Needs to be adjusted depending on what that file looks like. 
+
+
+## other stuff		
+**formatTables_2025.py**		
++ loads outoput files produced y Jam_Sommer.py and reformats the table for WGMS and pangaea formats.
+
+
+
 
