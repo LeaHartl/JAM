@@ -1,0 +1,14 @@
+out/
+figs/
+AWS_data/
+output_GEE/
+data/
+TC_subm/
+*.dat
+*.xlsx
+*.docx
+plot_lter_ANNA.py
+*.png
+*.tif
+**/.DS_Store
+**/__pycache__/
