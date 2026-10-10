@@ -14,57 +14,69 @@ import math
 # adapted from Andrea F's matlab file by Lea H. & Anne H.(2025)
 
 # current year:
-y = 2025
+curyear = 2026
+# DEM file path:
+raster = '/Users/leahartl/Desktop/JAM/JamDEM201718.tif'
+# file with timeseries data:
+ts_fn = '/Users/leahartl/Desktop/JAM/Jam_mb_timeseries.csv'
+# file with winter MB data: 
+winter_fn = '/Users/leahartl/Desktop/Jam2026/winter/winterbilanz_jam2026.csv'
+#set overall winter balance value from winter files:
+bwi = 0.918 # m w.e.
 
+# outputfolder - save plots and tables to this directory
+# make sure this directory exits
+output = '/Users/leahartl/Desktop/Jam2026/results/'
+# ouline directory - path to the folder with the MB geojson files:
+outline_dir = '/Users/leahartl/Desktop/Jam2026/sommer/MB_shapes/'
 # suffixes of geojson files for the different glacier parts
 # this sets up the code to loop through the different glacier parts
-sufs = ['', '_1', '_2', '_3']
-# main outline - orthophoto 2024
-zones1fn = '/Users/leahartl/Desktop/Jam2025/sommer/MB_viole/JAM_mb_2025.geojson'
-
-# use these for the 2025 outlines: 
-# outline 2025 - orthophoto 2025
-# sufs = ['_small', '_small_1', '_small_2', '_small_3', '_small_4']
-# zones1fn = '/Users/leahartl/Desktop/Jam2025/sommer/MB_viole/JAM_mb_2025_small.geojson'
+sufs = ['_all', '_west', '_central', '_east']
+# file with stake data:
+stakesfn = '/Users/leahartl/Desktop/Jam2026/sommer/Pegel2026_elev_abl.geojson'
+# anme of column in stakes file which contains ablation in m w.e.
+param = 'abl_m_we'
+# main outline - based on orthophoto of previous year
+zones1fn = '/Users/leahartl/Desktop/Jam2026/sommer/MB_shapes/2026_all.geojson'
 
 zones1 = gpd.read_file(zones1fn)
 # reproject to crs with true area (don't use lat/lon to compute area)
+print(zones1.crs)
 zones1 = zones1.to_crs(epsg=31254)
 
 #----------------------------#
 # function to make the map figure
-def makeMB_Map(zones, suffix):
+def makeMB_Map(zones, suffix, curyear, stakesfn, param, raster):
     cmap = 'RdYlBu'#'coolwarm_r'
-    vmin = -6.00
+    # adjust min, max values here if needed!
+    vmin = -6.50
     vmax = 1.00
 
+    # convert to m
     zones['mb'] = zones['mb']/100
 
-    raster = '/Users/leahartl/Desktop/JAM/JamDEM201718.tif'
     DEM = rxr.open_rasterio(raster)
-    # print(DEM.shape)
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     divnorm = mcolors.TwoSlopeNorm(vmin=vmin, vcenter = 0, vmax=vmax)
+
     zones.plot(ax=ax, column='mb', alpha=1, cmap=cmap, norm=divnorm, legend=False, zorder=1)
     CS = DEM.squeeze().plot.contour(ax=ax, colors='grey', levels=np.arange(2000, 3000, 50), linewidths=0.5)
     ax.clabel(CS, inline=1, fontsize=10)
 
     # plot stake values for the main run:
-    if len(suffix) == 0:
+    if suffix == '_all':
         # load stakes:
-        # stakes file with elevation and WW: 
-        stakes = gpd.read_file('/Users/leahartl/Desktop/Jam2025/sommer/Pegel2025.geojson')
-        stakes['melt'] = (stakes['mm_we_withsnowcorr_300kgm_3_fixed']/1000).round(decimals=2)
+        # stakes file with elevation and WW:
+        stakes = gpd.read_file(stakesfn)
+        # check that values have the right unit and are negative!
+        stakes['melt'] = stakes[param].round(decimals=2)*-1 
         stakes.to_crs(epsg=31254, inplace=True)
-        stakes.plot(column='melt', ax=ax, cmap=cmap, norm=divnorm, legend=False, label='WW [mm w.e.]', edgecolor='k')
+        stakes.plot(column='melt', ax=ax, cmap=cmap, norm=divnorm, legend=False, label='WW [m w.e.]', edgecolor='k')
 
         for x, y, label, nm in zip(stakes.geometry.x, stakes.geometry.y, stakes['melt'], stakes['name']):
-            if (nm == 1):
-            #print('yes')
-                xytext = (400, 8)
-            if (nm == 11):
-                xytext = (-30, 8)
+            if (nm == 2):
+                xytext = (-30, 6)
             else:
                 xytext = (-15, 8)
     
@@ -74,7 +86,7 @@ def makeMB_Map(zones, suffix):
     ax.set_xlim([-14500, -11300])
     ax.set_ylim([189900, 192000])
 
-    ax.set_title('Massenbilanz (m w.e.), 1. Oktober 2024 - 30. September 2025')
+    ax.set_title('Spezifische Massenbilanz (m w.e.), 1. Oktober '+str(curyear-1)+' - 30. September '+str(curyear))
     ax.set_xlabel('')
     ax.set_ylabel('')
 
@@ -85,27 +97,28 @@ def makeMB_Map(zones, suffix):
     cbar.set_label('m w.e.')
     cbar.ax.set_yscale('linear')
 
-    fig.savefig('/Users/leahartl/Desktop/Jam2025/Bericht/MB_2025_map'+suffix+'.png', bbox_inches='tight', dpi=200)
+    fig.savefig(output+'MB_'+str(curyear)+'_map'+suffix+'.png', bbox_inches='tight', dpi=200)
 
 # function to make the tables
-def makeMBTables(dataS, sumbalance, bquer, bw, bs, suffix):
+def makeMBTables(dataS, sumbalance, bquer, bw, bs, suffix, winter_fn):
     # load and add winter balance for the main run:
     if len(suffix) == 0:
         # load winter MB data file: 
-        dataW = pd.read_csv("/Users/leahartl/Desktop/Jam2025/winter/winterbilanz_jam2025.csv", index_col=0)
-        # ,Höhenstufe,Fläche,Anzahl_Sondierungen,Mittlere_Schneehöhe,b_wi,Bilanz
+        dataW = pd.read_csv(winter_fn, index_col=0)
 
+        #Höhenstufe,Fläche,Anzahl_Sondierungen,Mittlere_Schneehöhe_m,b_wi_m,Bilanz_m3,Fläche_m2
         data = dataS.merge(dataW, left_on='elev', right_on='Höhenstufe')
-        data = data[['Höhenstufe', 'Fläche', 'balance', 'b', 'b_wi']]
+        data = data[['Höhenstufe', 'Fläche', 'balance_m3', 'b_m', 'b_wi_m']]
+        #data.rename(columns={'b_wi_m':'b_wi'})
 
-        data['b_so'] = -1*data['b_wi'] + data['b']
+        data['b_so_m'] = -1*data['b_wi_m'] + data['b_m']
 
         # for table:
-        fortable = data[['Höhenstufe', 'Fläche', 'balance', 'b', 'b_wi', 'b_so']]
+        fortable = data[['Höhenstufe', 'Fläche', 'balance_m3', 'b_m', 'b_wi_m', 'b_so_']]
 
-        dfZones = pd.DataFrame(columns=['Höhenstufe', 'Fläche', 'balance', 'b', 'b_wi', 'b_so'])
+        dfZones = pd.DataFrame(columns=['Höhenstufe', 'Fläche_km2', 'balance_Bm3', 'b_m', 'b_wi_m', 'b_so_m'])
         dfZones.loc[0, 'Höhenstufe'] = np.nan
-        dfZones.loc[0, 'Fläche'] = data.Fläche.sum()
+        dfZones.loc[0, 'Fläche_km2'] = data['Fläche'].sum()*1e-6
         dfZones.loc[0, 'balance'] = sumbalance
         dfZones.loc[0, 'b'] = bquer
         dfZones.loc[0, 'b_wi'] = bw
@@ -116,31 +129,31 @@ def makeMBTables(dataS, sumbalance, bquer, bw, bs, suffix):
 
         fortable['Fläche'] = (fortable['Fläche']*1e-6).astype(float).round(decimals=3)
         fortable['balance'] = (fortable['balance']*1e-3).astype(float).round(decimals=3)
-        fortable[['b', 'b_wi', 'b_so']] = fortable[['b', 'b_wi', 'b_so']].astype(float).round(decimals=0).astype(int)
+        fortable[['b_m', 'b_wi', 'b_so']] = fortable[['b', 'b_wi', 'b_so']].astype(float).round(decimals=0).astype(int)
 
 
     # for sub-parts only use annual balance:
     else:
         data = dataS
         data = data.rename(columns={'area': 'Fläche', 'elev': 'Höhenstufe'})
-        fortable = data[['Höhenstufe', 'Fläche', 'balance', 'b']]
+        fortable = data[['Höhenstufe', 'Fläche', 'balance_m3', 'b_m']]
 
-        dfZones = pd.DataFrame(columns=['Höhenstufe', 'Fläche', 'balance', 'b'])
+        dfZones = pd.DataFrame(columns=['Höhenstufe', 'Fläche', 'balance_m3', 'b_m'])
         dfZones.loc[0, 'Höhenstufe'] = np.nan
         dfZones.loc[0, 'Fläche'] = data.Fläche.sum()
-        dfZones.loc[0, 'balance'] = sumbalance
-        dfZones.loc[0, 'b'] = bquer
+        dfZones.loc[0, 'balance_m3'] = sumbalance
+        dfZones.loc[0, 'b_m'] = bquer
 
         fortable = pd.concat([fortable, dfZones])
         # print(fortable)
 
-        fortable['Fläche'] = (fortable['Fläche']*1e-6).astype(float).round(decimals=3)
-        fortable['balance'] = (fortable['balance']*1e-3).astype(float).round(decimals=3)
-        fortable['b'] = fortable['b'].round(decimals=0).astype(int)
+        fortable['Fläche_km2'] = (fortable['Fläche']*1e-6).astype(float).round(decimals=3)
+        fortable['balance*1e-3'] = (fortable['balance_m3']*1e-3).astype(float).round(decimals=3)
+        fortable['b_m'] = fortable['b_m'].round(decimals=3).astype(int)
 
     print(fortable.to_latex(index=False))
-    fortable.to_latex('/Users/leahartl/Desktop/Jam2025/Bericht/table_MB'+suffix+'.txt', index=False)
-    fortable.to_csv('/Users/leahartl/Desktop/Jam2025/Bericht/table_MB'+suffix+'.csv', index=False)
+    fortable.to_latex(output+'table_MB'+suffix+'.txt', index=False)
+    fortable.to_csv(output+'table_MB'+suffix+'.csv', index=False)
 
     return(fortable)
 
@@ -149,6 +162,7 @@ def makeMBFig_main(data, sumbalance, bquer, bw, bs, suffix):
     # drop nan line: 
     data = data.dropna()
     print(data)
+
     # ============ PLOT
     fig, ax = plt.subplots(1,2, figsize=(8, 8), sharey=True)
     ax = ax.flatten()
@@ -169,11 +183,11 @@ def makeMBFig_main(data, sumbalance, bquer, bw, bs, suffix):
     ax[1].yaxis.tick_right()
     ax[1].yaxis.set_label_position('right')
     # PLOT MB on ax2
-    ax[1].plot(data.b.values, data.Höhenstufe.values, 'k', linewidth=2, label='spezifische Massenbilanz 2024/25')
+    ax[1].plot(data.b.values, data.Höhenstufe.values, 'k', linewidth=2, label='spezifische Massenbilanz '+str(curyear-1)+'/'+str(curyear))
     ax[1].plot(data.b_wi.values, data.Höhenstufe.values, 'b', label='spezifische Wintermassenbilanz')
     ax[1].plot(data.b_so.values, data.Höhenstufe.values, 'r', label='spezifische Sommermassenbilanz')
     # # set x axis properties
-    ax[1].set_xlabel('Massenbilanz [mm w.e.]', fontsize=12)
+    ax[1].set_xlabel('Massenbilanz [m w.e.]', fontsize=12)
     ax[1].grid('both')
 
     # PLOT a 0 LINE
@@ -186,7 +200,7 @@ def makeMBFig_main(data, sumbalance, bquer, bw, bs, suffix):
     # remove white space
     plt.subplots_adjust(wspace=0, hspace=0)
 
-    fig.savefig('/Users/leahartl/Desktop/Jam2025/Bericht/MB_2025_elevationzones'+suffix+'.png', dpi=200, bbox_inches='tight')
+    fig.savefig(output+'MB_'+str(curyear)+'_elevationzones'+suffix+'.png', dpi=200, bbox_inches='tight')
 
 # plot the individual pieces of the glacier (like Vernagtferner reports)
 def makeMBPlot_v2(zones, zones1, data, sumbalance, bquer, sumstats, suffix):
@@ -230,12 +244,12 @@ def makeMBPlot_v2(zones, zones1, data, sumbalance, bquer, sumstats, suffix):
     ax22.set_ylim(2420, 3120)
     ax22.set_xlim(-7, 0)
 
-    fig.savefig('/Users/leahartl/Desktop/Jam2025/Bericht/MB_2025_elevationzones_v2'+suffix+'.png', dpi=200, bbox_inches='tight')
+    fig.savefig(output+'MB_2025_elevationzones_v2'+suffix+'.png', dpi=200, bbox_inches='tight')
 
 # make stripes plot and add new data to the csv file
-def StripesPlot(sumstats, curyear):
+def StripesPlot(sumstats, curyear, ts_fn):
     # get the older data
-    data = pd.read_csv('/Users/leahartl/Desktop/JAM/Jam_mb_timeseries.csv', sep= ',', decimal='.') 
+    data = pd.read_csv(ts_fn, sep=',', decimal='.')
 
     st = pd.DataFrame(columns=data.columns)
     st.loc[0, :] = sumstats
@@ -245,7 +259,7 @@ def StripesPlot(sumstats, curyear):
     data[['Sc', 'Sa', 'S', 'B']] = data[['Sc', 'Sa', 'S', 'B']].astype(float).round(decimals=3)
     data[['Ba']] = data[['Ba']].astype(float).round(decimals=1)
 
-    data.to_csv('/Users/leahartl/Desktop/JAM/Jam_mb_timeseries_'+str(curyear)+'.csv')
+    data.to_csv(output+'Jam_mb_timeseries_'+str(curyear)+'.csv')
     print(data)
     print(data[['S', 'B', 'b', 'bs', 'bw', 'Sc/S']].mean())
 
@@ -269,10 +283,10 @@ def StripesPlot(sumstats, curyear):
     ax.set_facecolor('lightgrey')
     ax.set_title('Jamtalferner (1989-'+str(curyear)+')')
 
-    fig.savefig('/Users/leahartl/Desktop/Jam2025/Bericht/Jam_stripes_'+str(curyear)+'.png', bbox_inches='tight', dpi=200)
+    fig.savefig(output+'Jam_stripes_'+str(curyear)+'.png', bbox_inches='tight', dpi=200)
 
 # compute MB data: 
-def mainMassBalance(zones):
+def mainMassBalance(zones, bw):
     # add area
     zones['area'] = zones.geometry.area
 
@@ -288,26 +302,27 @@ def mainMassBalance(zones):
     summer_df = zones[['mb', 'elev', 'area']]
     # summer_df = summer_df.rename(columns={'elev': 'Höhenstufe', 'area': 'Fläche'})
     summer_df = summer_df.sort_values(by='elev')
-    summer_df['balance'] = summer_df['area'] * summer_df['mb'] / 100.0 # m³ - mb in zones file is in cm!!
+    summer_df['balance_m3'] = summer_df['area'] * summer_df['mb'] / 100.0 # m³ - mb in zones file is in cm!!
 
     # compute some summary values
     datmax = summer_df.shape[0]
-    sumbalance = summer_df['balance'].sum()
+    sumbalance = summer_df['balance_m3'].sum()
     bquer = (sumbalance / total_area) * 1000.0  # mm
 
     # --- Akkumulation / Ablation ---
-    acc_mask = summer_df['balance'] > 0
-    abl_mask = summer_df['balance'] < 0
-    no_mask = summer_df['balance'] == 0
+    acc_mask = summer_df['balance_m3'] > 0
+    abl_mask = summer_df['balance_m3'] < 0
+    no_mask = summer_df['balance_m3'] == 0
 
     accarea = np.sum(summer_df['area'][acc_mask])
     ablarea = np.sum(summer_df['area'][abl_mask])
     noarea = np.sum(summer_df['area'][no_mask])
 
-    accb = np.sum(summer_df['balance'][acc_mask])
-    ablb = np.sum(summer_df['balance'][abl_mask])
-    nob = np.sum(summer_df['balance'][no_mask])
+    accb = np.sum(summer_df['balance_m3'][acc_mask])
+    ablb = np.sum(summer_df['balance_m3'][abl_mask])
+    nob = np.sum(summer_df['balance_m3'][no_mask])
 
+    # all in mm!
     bquerabl = (ablb / ablarea) * 1000.0 if ablarea != 0 else float('nan')
     bqueracc = (accb / accarea) * 1000.0 if accarea != 0 else float('nan')
     SczuS = accarea / total_area if total_area != 0 else float('nan')
@@ -316,22 +331,22 @@ def mainMassBalance(zones):
     zone_bins = np.arange(zones['elev'].min(), zones['elev'].max()+50, 50)
 
     # Aggregate sums by zone
-    zone_stats = summer_df.groupby('elev', as_index=False).agg({'balance': 'sum', 'area': 'sum'})
+    zone_stats = summer_df.groupby('elev', as_index=False).agg({'balance_m3': 'sum', 'area': 'sum'})
 
     # Reindex to include all class zones (some may be missing in data)
     zone_stats = zone_stats.set_index('elev').reindex(zone_bins, fill_value=0).reset_index()
 
     # Compute mean balance (mm)
-    zone_stats['b'] = (zone_stats['balance'] / zone_stats['area']) * 1000.0
-
+    zone_stats['b_m'] = (zone_stats['balance_m3'] / zone_stats['area']) #* 1000.0
+    print(zone_stats)
     # summer balance: 
     bs = bquer - bw
 
-    sumstats = ['2024/2025', accarea/10**6, accb/10**3, bqueracc, ablarea/10**6, ablb/10**3, bquerabl,
-            2025, total_area/10**6, sumbalance/10**6, bquer, bs, bw, '****', SczuS]
+    sumstats = [str(curyear-1)+'/'+str(curyear), accarea/10**6, accb/10**3, bqueracc, ablarea/10**6, ablb/10**3, bquerabl,
+            curyear, total_area/10**6, sumbalance/10**6, bquer, bs, bw, '****', SczuS]
 
 
-    return(zone_stats, sumbalance, sumstats, bs, bquer, bw)
+    return(zone_stats, sumbalance, sumstats, bs, bquer)
 
 
 # ------ run the functions -------_
@@ -339,90 +354,40 @@ def mainMassBalance(zones):
 for suffix in sufs:
     # set additional values:
     # specific winter mass balance (output of Jam_winter.py):
-    if len(suffix) == 0:
-        bw = 672.0
+    if suffix == '_all':
+        bw = bwi
     else:
         bw = np.nan
 
     # load file with elevation and mass balance values (QGIS output):
     # zones = gpd.read_file('/Users/leahartl/Desktop/Jam2025/sommer/MB_viole/JAM_mb_2025_1.geojson')
-    zonesfn = '/Users/leahartl/Desktop/Jam2025/sommer/MB_viole/JAM_mb_2025'+suffix+'.geojson'
+    zonesfn = outline_dir+str(curyear)+suffix+'.geojson'
     zones = gpd.read_file(zonesfn)
     # reproject to crs with true area (don't use lat/lon to compute area)
     zones = zones.to_crs(epsg=31254)
 
 
-    zone_stats, sumbalance, sumstats, bs, bquer, bw = mainMassBalance(zones)
+    zone_stats, sumbalance, sumstats, bs, bquer = mainMassBalance(zones, bw)
 
     # # make map plot for report
-    if len(suffix) == 0:
-        print('main run ', str(y))
-        makeMB_Map(zones, suffix)
+    if suffix == '_all':
+        print('main run ', str(curyear))
+        makeMB_Map(zones, suffix, curyear, stakesfn, param, raster)
         # # make the tables
-        dfZones = makeMBTables(zone_stats, sumbalance, bquer, bw, bs, suffix)
+        dfZones = makeMBTables(zone_stats, sumbalance, bquer, bw, bs, suffix, winter_fn)
+        print(dfZones)
+        stop
         makeMBFig_main(dfZones, sumbalance, bquer, bw, bs, suffix)
-        StripesPlot(sumstats, y)
+        StripesPlot(sumstats, curyear, ts_fn)
         makeMBPlot_v2(zones, zones1, dfZones, sumbalance, bquer, sumstats, suffix)
 
     else:
-        print('partial run ', suffix, str(y))
-        dfZones = makeMBTables(zone_stats, sumbalance, bquer, bw, bs, suffix)
+        print('partial run ', suffix, str(curyear))
+        dfZones = makeMBTables(zone_stats, sumbalance, bquer, bw, bs, suffix, winter_fn)
         makeMBPlot_v2(zones, zones1, dfZones, sumbalance, bquer, sumstats, suffix)
 
 
 
 plt.show()
-
-
-
-
-## older code to make text files in particular format:
-# print to latex format for Bericht
-# zone_stats.to_latex(out_pathLTX)
-
-# # print to text file 
-# # --- Hilfsfunktion für Ausgabeformat ---
-# def fmt(value, fmtstr):
-#     if value is None or (isinstance(value, float) and math.isnan(value)):
-#         return "NaN".rjust(int(fmtstr.split('.')[0])) if '.' in fmtstr else "NaN"
-#     return format(value, fmtstr)
-
-
-# with open(out_path, "w", encoding="utf-8") as fid:
-#     fid.write(f"Sc={fmt(accarea/10**6, '12.3f')} km^2 \n")
-#     fid.write(f"Bc={fmt(accb/10**3,   '12.1f')}  10^3m^3\n")
-#     fid.write(f"bc={fmt(bqueracc,     '12.0f')}  mm\n")
-#     fid.write("\n")
-#     fid.write(f"Sa={fmt(ablarea/10**6,'12.3f')} km^2 \n")
-#     fid.write(f"Ba={fmt(ablb/10**3,   '12.1f')}  10^3m^3\n")
-#     fid.write(f"ba={fmt(bquerabl,     '12.0f')}  mm\n")
-#     fid.write("\n")
-#     fid.write(f"S={fmt(total_area/10**6,'12.3f')}  km^2\n")
-#     fid.write(f"B={fmt(sumbalance/10**3,'12.1f')}  10^3m^3\n")
-#     fid.write(f"b={fmt(bquer,         '12.0f')}  mm\n")
-#     fid.write("\n")
-
-#     # bw und bs nur schreiben, wenn bw gesetzt oder NaN explizit
-#     fid.write(f"bw={fmt(bw, '12.0f')}  mm\n")
-#     fid.write(f"bs={fmt(bs, '12.0f')}  mm\n")
-#     fid.write("\n")
-
-#     fid.write(f"Sc/S={fmt(SczuS, '12.3f')}  \n")
-#     fid.write("#ELA NaN\n")  # solange ELA über Gipfelniveau
-#     fid.write("\n")
-
-#     # Überschrift mit fester Spaltenbreite
-#     fid.write(f"{'Zone':>8} {'Flaeche[km^2]':>14} {'B[10^3m^3]':>14} {'b[mm]':>10}\n")
-
-#     # Werte exakt spaltenweise ausgerichtet
-#     for i in range(zone_nr):
-#         fid.write(
-#             f"{zone_stats['elev'].to_numpy()[i]:8.0f} "
-#             f"{zone_stats['area'].to_numpy()[i]/10**6:14.3f} "
-#             f"{zone_stats['balance'].to_numpy()[i]/10**3:14.1f} "
-#             f"{zone_stats['b'].to_numpy()[i]:10.0f}\n")
-
-
-
 
 

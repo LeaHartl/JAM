@@ -16,8 +16,8 @@ from rasterio.plot import show
 
 # set file paths:
 # stakes with elevation and WW: 
-stakes = gpd.read_file('/Users/leahartl/Desktop/Jam2025/sommer/Pegel2025.geojson')
-stakes['melt'] = (stakes['mm_we_withsnowcorr_300kgm_3_fixed']/10).round(decimals=0).astype(int)
+stakes = gpd.read_file('/Users/leahartl/Desktop/Jam2026/sommer/Pegel2026_elev_abl.geojson')
+stakes['melt'] = (stakes['abl_m_we']*-100).round(decimals=0).astype(int)
 # contourlines 2017/18 DEM: 
 contours = gpd.read_file('/Users/leahartl/Desktop/JAM/contour_poly_201718_50m.shp')
 
@@ -37,10 +37,13 @@ ax.clabel(CS, inline=1, fontsize=10)
         # ax.contour(DEM.squeeze())
 
 
-outline2023 = gpd.read_file('/Users/leahartl/Desktop/Jam2023/outlines/Jamtalferner/jam22_sentinel_okt23.shp')
-outline2023.to_crs(epsg=31254, inplace=True)
-outline2023.boundary.plot(ax=ax, color='k')
+# outline2023 = gpd.read_file('/Users/leahartl/Desktop/Jam2023/outlines/Jamtalferner/jam22_sentinel_okt23.shp')
+# outline2023.to_crs(epsg=31254, inplace=True)
+# outline2023.boundary.plot(ax=ax, color='k')
 
+outline2025 = gpd.read_file('/Users/leahartl/Desktop/Jam2026/outline_viole_2025.geojson')
+outline2025.to_crs(epsg=31254, inplace=True)
+outline2025.boundary.plot(ax=ax, color='k')
 # contours.to_crs(epsg=31254, inplace=True)
 # contours.boundary.plot(ax=ax, linewidths=0.2, color='grey')
 
@@ -50,11 +53,11 @@ stakes.plot(column='melt', ax=ax, cmap= 'Reds_r', legend=False, label='WW [mm w.
 for x, y, label, nm in zip(stakes.geometry.x, stakes.geometry.y, stakes['melt'], stakes['name']):
     # print (nm)
     # stop
-    if (nm == 1):
-        #print('yes')
-        xytext = (400, 8)
-    if (nm == 11):
-        xytext = (-30, 8)
+    # if (nm == 2):
+    #     print('yes')
+    #     xytext = (6100, 8)
+    if (nm == 2):
+        xytext = (-30, 6)
     else:
         xytext = (-15, 8)
     
@@ -68,9 +71,9 @@ for x, y, label, nm in zip(stakes.geometry.x, stakes.geometry.y, stakes['melt'],
 
 ax.set_xlim([-14500, -11300])
 ax.set_ylim([189900, 192000])
-ax.set_title('Annual point mass balance 2024/25 (fixed date, cm w.e.)')
+ax.set_title('Annual point mass balance 2025/26 (fixed date, cm w.e.)')
 
-fig.savefig('/Users/leahartl/Desktop/Jam2025/sommer/karte_annual_fixedate_CM_COR.png', bbox_inches='tight', dpi=200)
+fig.savefig('/Users/leahartl/Desktop/Jam2026/sommer/karte_annual_fixedate_CM.png', bbox_inches='tight', dpi=200)
 
 plt.show()
 
