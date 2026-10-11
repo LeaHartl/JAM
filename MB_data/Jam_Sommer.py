@@ -18,7 +18,7 @@ curyear = 2026
 # DEM file path:
 raster = '/Users/leahartl/Desktop/JAM/JamDEM201718.tif'
 # file with timeseries data:
-ts_fn = '/Users/leahartl/Desktop/JAM/Jam_mb_timeseries.csv'
+ts_fn = '/Users/leahartl/Desktop/JAM/Jam_mb_timeseries_2025.csv'
 # file with winter MB data: 
 winter_fn = '/Users/leahartl/Desktop/Jam2026/winter/winterbilanz_jam2026.csv'
 #set overall winter balance value from winter files:
@@ -47,10 +47,17 @@ zones1 = zones1.to_crs(epsg=31254)
 #----------------------------#
 # function to make the map figure
 def makeMB_Map(zones, suffix, curyear, stakesfn, param, raster):
-    cmap = 'RdYlBu'#'coolwarm_r'
+    #cmap = 'Reds'#'RdYlBu'#'coolwarm_r'
     # adjust min, max values here if needed!
     vmin = -6.50
-    vmax = 1.00
+    vmax = 0.00
+    # divnorm = mcolors.TwoSlopeNorm(vmin=vmin, vcenter = 0, vmax=vmax)
+
+    levels = np.arange(vmin, vmax + 0.5, 0.5)
+
+    # Discrete colormap with contour levels
+    cmap = plt.get_cmap('Reds_r', len(levels) - 1)
+    norm = mcolors.BoundaryNorm(levels, cmap.N)
 
     # convert to m
     zones['mb'] = zones['mb']/100
@@ -58,9 +65,9 @@ def makeMB_Map(zones, suffix, curyear, stakesfn, param, raster):
     DEM = rxr.open_rasterio(raster)
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-    divnorm = mcolors.TwoSlopeNorm(vmin=vmin, vcenter = 0, vmax=vmax)
+    
 
-    zones.plot(ax=ax, column='mb', alpha=1, cmap=cmap, norm=divnorm, legend=False, zorder=1)
+    zones.plot(ax=ax, column='mb', alpha=1, cmap=cmap, norm=norm, legend=False, zorder=1)
     CS = DEM.squeeze().plot.contour(ax=ax, colors='grey', levels=np.arange(2000, 3000, 50), linewidths=0.5)
     ax.clabel(CS, inline=1, fontsize=10)
 
@@ -72,7 +79,7 @@ def makeMB_Map(zones, suffix, curyear, stakesfn, param, raster):
         # check that values have the right unit and are negative!
         stakes['melt'] = stakes[param].round(decimals=2)*-1 
         stakes.to_crs(epsg=31254, inplace=True)
-        stakes.plot(column='melt', ax=ax, cmap=cmap, norm=divnorm, legend=False, label='WW [m w.e.]', edgecolor='k')
+        stakes.plot(column='melt', ax=ax, cmap=cmap, norm=norm, legend=False, label='WW [m w.e.]', edgecolor='k')
 
         for x, y, label, nm in zip(stakes.geometry.x, stakes.geometry.y, stakes['melt'], stakes['name']):
             if (nm == 2):
@@ -92,7 +99,7 @@ def makeMB_Map(zones, suffix, curyear, stakesfn, param, raster):
 
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.82, 0.13, 0.02, 0.7])
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=divnorm)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     cbar = fig.colorbar(sm, cax=cbar_ax)
     cbar.set_label('m w.e.')
     cbar.ax.set_yscale('linear')
@@ -102,34 +109,34 @@ def makeMB_Map(zones, suffix, curyear, stakesfn, param, raster):
 # function to make the tables
 def makeMBTables(dataS, sumbalance, bquer, bw, bs, suffix, winter_fn):
     # load and add winter balance for the main run:
-    if len(suffix) == 0:
+    if suffix == '_all':
         # load winter MB data file: 
         dataW = pd.read_csv(winter_fn, index_col=0)
 
         #Höhenstufe,Fläche,Anzahl_Sondierungen,Mittlere_Schneehöhe_m,b_wi_m,Bilanz_m3,Fläche_m2
         data = dataS.merge(dataW, left_on='elev', right_on='Höhenstufe')
         data = data[['Höhenstufe', 'Fläche', 'balance_m3', 'b_m', 'b_wi_m']]
-        #data.rename(columns={'b_wi_m':'b_wi'})
 
         data['b_so_m'] = -1*data['b_wi_m'] + data['b_m']
 
+        data['Fläche_km2'] = data['Fläche']*1e-6
         # for table:
-        fortable = data[['Höhenstufe', 'Fläche', 'balance_m3', 'b_m', 'b_wi_m', 'b_so_']]
+        fortable = data[['Höhenstufe', 'Fläche_km2', 'balance_m3', 'b_m', 'b_wi_m', 'b_so_m']]
 
-        dfZones = pd.DataFrame(columns=['Höhenstufe', 'Fläche_km2', 'balance_Bm3', 'b_m', 'b_wi_m', 'b_so_m'])
+        dfZones = pd.DataFrame(columns=['Höhenstufe', 'Fläche_km2', 'balance_m3', 'b_m', 'b_wi_m', 'b_so_m'])
         dfZones.loc[0, 'Höhenstufe'] = np.nan
-        dfZones.loc[0, 'Fläche_km2'] = data['Fläche'].sum()*1e-6
-        dfZones.loc[0, 'balance'] = sumbalance
-        dfZones.loc[0, 'b'] = bquer
-        dfZones.loc[0, 'b_wi'] = bw
-        dfZones.loc[0, 'b_so'] = bs
+        dfZones.loc[0, 'Fläche_km2'] = data['Fläche_km2'].sum()
+        dfZones.loc[0, 'balance_m3'] = sumbalance
+        dfZones.loc[0, 'b_m'] = bquer
+        dfZones.loc[0, 'b_wi_m'] = bw
+        dfZones.loc[0, 'b_so_m'] = bs
 
         fortable = pd.concat([fortable, dfZones])
         # print(fortable)
 
-        fortable['Fläche'] = (fortable['Fläche']*1e-6).astype(float).round(decimals=3)
-        fortable['balance'] = (fortable['balance']*1e-3).astype(float).round(decimals=3)
-        fortable[['b_m', 'b_wi', 'b_so']] = fortable[['b', 'b_wi', 'b_so']].astype(float).round(decimals=0).astype(int)
+        fortable['Fläche_km2'] = (fortable['Fläche_km2']).astype(float).round(decimals=3)
+        fortable['balance_m3*1e-3'] = (fortable['balance_m3']*1e-3).astype(float).round(decimals=3)
+        fortable[['b_m', 'b_wi_m', 'b_so_m']] = fortable[['b_m', 'b_wi_m', 'b_so_m']].astype(float).round(decimals=3)
 
 
     # for sub-parts only use annual balance:
@@ -151,14 +158,13 @@ def makeMBTables(dataS, sumbalance, bquer, bw, bs, suffix, winter_fn):
         fortable['balance*1e-3'] = (fortable['balance_m3']*1e-3).astype(float).round(decimals=3)
         fortable['b_m'] = fortable['b_m'].round(decimals=3).astype(int)
 
-    print(fortable.to_latex(index=False))
     fortable.to_latex(output+'table_MB'+suffix+'.txt', index=False)
     fortable.to_csv(output+'table_MB'+suffix+'.csv', index=False)
 
     return(fortable)
 
 # make the plot of hypsometry and b y elevation zones for the report
-def makeMBFig_main(data, sumbalance, bquer, bw, bs, suffix):
+def makeMBFig_main(data, suffix):
     # drop nan line: 
     data = data.dropna()
     print(data)
@@ -168,7 +174,7 @@ def makeMBFig_main(data, sumbalance, bquer, bw, bs, suffix):
     ax = ax.flatten()
     # =========== AX 1
     # PLOT AREA on AX 1
-    ax[0].barh(data.Höhenstufe.values, data.Fläche.values, 45, align='center', linewidth=1, alpha=1, color='grey')
+    ax[0].barh(data.Höhenstufe.values, data.Fläche_km2.values, 45, align='center', linewidth=1, alpha=1, color='grey')
     # set x axis properties
     ax[0].set_xlim(0, .4)
     ax[0].set_xticks(np.arange(0, 0.4, 0.1))
@@ -183,9 +189,9 @@ def makeMBFig_main(data, sumbalance, bquer, bw, bs, suffix):
     ax[1].yaxis.tick_right()
     ax[1].yaxis.set_label_position('right')
     # PLOT MB on ax2
-    ax[1].plot(data.b.values, data.Höhenstufe.values, 'k', linewidth=2, label='spezifische Massenbilanz '+str(curyear-1)+'/'+str(curyear))
-    ax[1].plot(data.b_wi.values, data.Höhenstufe.values, 'b', label='spezifische Wintermassenbilanz')
-    ax[1].plot(data.b_so.values, data.Höhenstufe.values, 'r', label='spezifische Sommermassenbilanz')
+    ax[1].plot(data.b_m.values, data.Höhenstufe.values, 'k', linewidth=2, label='spezifische Massenbilanz '+str(curyear-1)+'/'+str(curyear))
+    ax[1].plot(data.b_wi_m.values, data.Höhenstufe.values, 'b', label='spezifische Wintermassenbilanz')
+    ax[1].plot(data.b_so_m.values, data.Höhenstufe.values, 'r', label='spezifische Sommermassenbilanz')
     # # set x axis properties
     ax[1].set_xlabel('Massenbilanz [m w.e.]', fontsize=12)
     ax[1].grid('both')
@@ -203,7 +209,7 @@ def makeMBFig_main(data, sumbalance, bquer, bw, bs, suffix):
     fig.savefig(output+'MB_'+str(curyear)+'_elevationzones'+suffix+'.png', dpi=200, bbox_inches='tight')
 
 # plot the individual pieces of the glacier (like Vernagtferner reports)
-def makeMBPlot_v2(zones, zones1, data, sumbalance, bquer, sumstats, suffix):
+def makeMBPlot_v2(zones, zones1, data, suffix, curyear):
     # drop last line
     data = data.dropna()
 
@@ -226,7 +232,7 @@ def makeMBPlot_v2(zones, zones1, data, sumbalance, bquer, sumstats, suffix):
 
     # =========== AX 1
     # PLOT AREA on AX 1
-    ax2.barh(data.Höhenstufe.values, data.Fläche.values, 45, align='center', linewidth=1, alpha=1, color='grey', label='Fläche [km$^2$]')
+    ax2.barh(data.Höhenstufe.values, data.Fläche_km2.values, 45, align='center', linewidth=1, alpha=1, color='grey', label='Fläche [km$^2$]')
     # # set x axis properties
     ax2.set_xlim(0.4, 0)
     ax2.legend(loc='lower left')
@@ -234,23 +240,28 @@ def makeMBPlot_v2(zones, zones1, data, sumbalance, bquer, sumstats, suffix):
     ax2.set_xlabel('Fläche [km$^2$]', fontsize=12, color='grey')
 
     ax22 = ax2.twiny()
-    ax22.plot(data.balance*1e-2, data.Höhenstufe.values, linewidth=1, alpha=1, color='k',label='B [10$^5$ m$^3$]')
-    ax22.plot(data.b*1e-3, data.Höhenstufe.values, linewidth=1, alpha=1, color='r', label='b [m w.e.]')
+    ax22.plot(data.balance_m3*1e-5, data.Höhenstufe.values, linewidth=1, alpha=1, color='k',label='B*10^-5 [m$^3$]')
+    ax22.plot(data.b_m, data.Höhenstufe.values, linewidth=1, alpha=1, color='r', label='b [m w.e.]')
     ax22.legend()
     ax22.set_xlabel('B [10$^5$ m$^3$], b [m w.e.]', fontsize=12)
     ax22.set_ylabel('Höhenstufen [m.a.s.l.]', fontsize=12)
     ax22.yaxis.set_label_position('right')
     ax22.yaxis.tick_right()
-    ax22.set_ylim(2420, 3120)
-    ax22.set_xlim(-7, 0)
 
-    fig.savefig(output+'MB_2025_elevationzones_v2'+suffix+'.png', dpi=200, bbox_inches='tight')
+    # HIER - adjust so it picks suitable values depending on data!
+    ax22.set_ylim(2420, 3120)
+
+
+    ax22.set_xlim(-8.5, 0)
+
+    fig.savefig(output+'MB_'+str(curyear)+'_elevationzones_v2'+suffix+'.png', dpi=200, bbox_inches='tight')
 
 # make stripes plot and add new data to the csv file
 def StripesPlot(sumstats, curyear, ts_fn):
     # get the older data
-    data = pd.read_csv(ts_fn, sep=',', decimal='.')
-
+    data = pd.read_csv(ts_fn, sep=',', decimal='.', index_col=0)
+    print(data)
+    print(sumstats)
     st = pd.DataFrame(columns=data.columns)
     st.loc[0, :] = sumstats
 
@@ -307,7 +318,7 @@ def mainMassBalance(zones, bw):
     # compute some summary values
     datmax = summer_df.shape[0]
     sumbalance = summer_df['balance_m3'].sum()
-    bquer = (sumbalance / total_area) * 1000.0  # mm
+    bquer = (sumbalance / total_area) # keep it in meters (make sure units match everywhere)
 
     # --- Akkumulation / Ablation ---
     acc_mask = summer_df['balance_m3'] > 0
@@ -323,8 +334,8 @@ def mainMassBalance(zones, bw):
     nob = np.sum(summer_df['balance_m3'][no_mask])
 
     # all in mm!
-    bquerabl = (ablb / ablarea) * 1000.0 if ablarea != 0 else float('nan')
-    bqueracc = (accb / accarea) * 1000.0 if accarea != 0 else float('nan')
+    bquerabl = (ablb / ablarea) if ablarea != 0 else float('nan')
+    bqueracc = (accb / accarea) if accarea != 0 else float('nan')
     SczuS = accarea / total_area if total_area != 0 else float('nan')
 
     # Define zones
@@ -338,13 +349,16 @@ def mainMassBalance(zones, bw):
 
     # Compute mean balance (mm)
     zone_stats['b_m'] = (zone_stats['balance_m3'] / zone_stats['area']) #* 1000.0
-    print(zone_stats)
+
     # summer balance: 
     bs = bquer - bw
 
-    sumstats = [str(curyear-1)+'/'+str(curyear), accarea/10**6, accb/10**3, bqueracc, ablarea/10**6, ablb/10**3, bquerabl,
-            curyear, total_area/10**6, sumbalance/10**6, bquer, bs, bw, '****', SczuS]
+    # sumstats = [str(curyear-1)+'/'+str(curyear), accarea/10**6, accb/10**3, bqueracc, ablarea/10**6, ablb/10**3, bquerabl,
+    #         curyear, total_area/10**6, sumbalance/10**6, bquer, bs, bw, '****', SczuS]
 
+    # check units here in output tables....
+    sumstats = [str(curyear-1)+'/'+str(curyear), accarea/10**6, accb/10**3, bqueracc, ablarea/10**6, ablb/10**3, bquerabl,
+            curyear, total_area/10**6, sumbalance/10**6, bquer*1000, bs*1000, bw*1000, '****', SczuS]
 
     return(zone_stats, sumbalance, sumstats, bs, bquer)
 
@@ -373,18 +387,18 @@ for suffix in sufs:
     if suffix == '_all':
         print('main run ', str(curyear))
         makeMB_Map(zones, suffix, curyear, stakesfn, param, raster)
+        stop
         # # make the tables
         dfZones = makeMBTables(zone_stats, sumbalance, bquer, bw, bs, suffix, winter_fn)
-        print(dfZones)
-        stop
-        makeMBFig_main(dfZones, sumbalance, bquer, bw, bs, suffix)
+        # make figures and more tables
+        makeMBFig_main(dfZones, suffix)
         StripesPlot(sumstats, curyear, ts_fn)
-        makeMBPlot_v2(zones, zones1, dfZones, sumbalance, bquer, sumstats, suffix)
+        makeMBPlot_v2(zones, zones1, dfZones, suffix, curyear)
 
     else:
         print('partial run ', suffix, str(curyear))
         dfZones = makeMBTables(zone_stats, sumbalance, bquer, bw, bs, suffix, winter_fn)
-        makeMBPlot_v2(zones, zones1, dfZones, sumbalance, bquer, sumstats, suffix)
+        makeMBPlot_v2(zones, zones1, dfZones, suffix, curyear)
 
 
 
