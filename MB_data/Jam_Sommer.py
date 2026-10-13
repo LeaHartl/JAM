@@ -21,7 +21,7 @@ raster = '/Users/leahartl/Desktop/JAM/JamDEM201718.tif'
 ts_fn = '/Users/leahartl/Desktop/JAM/Jam_mb_timeseries_2025.csv'
 # file with winter MB data: 
 winter_fn = '/Users/leahartl/Desktop/Jam2026/winter/winterbilanz_jam2026.csv'
-#set overall winter balance value from winter files:
+#set overall winter balance value from winter files - adapt to make this dynamic at some point
 bwi = 0.918 # m w.e.
 
 # outputfolder - save plots and tables to this directory
@@ -34,8 +34,12 @@ outline_dir = '/Users/leahartl/Desktop/Jam2026/sommer/MB_shapes/'
 sufs = ['_all', '_west', '_central', '_east']
 # file with stake data:
 stakesfn = '/Users/leahartl/Desktop/Jam2026/sommer/Pegel2026_elev_abl.geojson'
-# anme of column in stakes file which contains ablation in m w.e.
+# name of column in stakes file which contains ablation in m w.e.
+# Viole: Change to "mb" or whatever you named the column! If this value is in cm w.e., 
+# you need to change it to meters either here in the script or in the file. 
+# The script assumes it is in meters.
 param = 'abl_m_we'
+
 # main outline - based on orthophoto of previous year
 zones1fn = '/Users/leahartl/Desktop/Jam2026/sommer/MB_shapes/2026_all.geojson'
 
@@ -266,12 +270,19 @@ def StripesPlot(sumstats, curyear, ts_fn):
     st.loc[0, :] = sumstats
 
     data = pd.concat([data, st])
-    data[['ba', 'b', 'bw', 'bs']] = data[['ba', 'b', 'bw', 'bs']].astype(float).round(decimals=0).astype(int)
+    
     data[['Sc', 'Sa', 'S', 'B']] = data[['Sc', 'Sa', 'S', 'B']].astype(float).round(decimals=3)
-    data[['Ba']] = data[['Ba']].astype(float).round(decimals=1)
+    data[['Ba']] = data[['Ba']].astype(float).round(decimals=3)
 
+    # adjust units in recent years to match older format (B in in m3*10^5 i think??)
+    data.loc[data['Year2']>=2022, 'Ba'] = data.loc[data['Year2']>=2022, 'Ba']/1000
+    data.loc[data['Year2']>=2026, 'ba'] = data.loc[data['Year2']>=2026, 'ba']*1000
+
+    data[['ba', 'b', 'bw', 'bs']] = data[['ba', 'b', 'bw', 'bs']].astype(float).round(decimals=0).astype(int)
+    # fill nan values in bc with 0
+    data['bc'] = data['bc'].fillna(0)
     data.to_csv(output+'Jam_mb_timeseries_'+str(curyear)+'.csv')
-    print(data)
+    #print(data)
     print(data[['S', 'B', 'b', 'bs', 'bw', 'Sc/S']].mean())
 
     yr = data['Year'].str.strip().str[-4:].astype(int).values
@@ -387,7 +398,6 @@ for suffix in sufs:
     if suffix == '_all':
         print('main run ', str(curyear))
         makeMB_Map(zones, suffix, curyear, stakesfn, param, raster)
-        stop
         # # make the tables
         dfZones = makeMBTables(zone_stats, sumbalance, bquer, bw, bs, suffix, winter_fn)
         # make figures and more tables

@@ -112,7 +112,7 @@ ax.legend()
 print(df1)
 
 stkpos = stkpos.merge(df1, left_on='name', right_index=True)
-stkpos['abl_m_we'] = stkpos['abl_cmice']/100 * 917 /1000
+stkpos['abl_m_we'] = stkpos['abl_cmice']/100 * 900 /1000
 stkpos['snowheight'] = 0
 print(stkpos)
 
