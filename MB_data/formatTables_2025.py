@@ -4,18 +4,34 @@ import geopandas as gpd
 
 import matplotlib.pyplot as plt
 from matplotlib import cm
-#import seaborn
 
+# script to generate different table formats for data submissions to WGMS and pangaea dataset.
+# WGMS format uses glacier-wide data, data per elevation band, and point scale data (stake values, probe points, and snow pits)
 
+# set up paths to input files
+# glacier name abbreviation
 gl = 'JAM'
-# read stakes excel file (annual data)
-fn = '/Users/leahartl/Desktop/JAM/Pegel_Jam.xlsx'
-fnPts_Spring = '/Users/leahartl/Desktop/Jam2025/winter/sondierungen_20250426.shp'
-pitname = 's01 18'
-pitdensity = 369 #kg/m3
+# hydrological year
+yr = 2026
 
-fnBands = '/Users/leahartl/Desktop/Jam2025/Bericht/table_MB.csv'
-yr = 2025
+## to get the stake data:
+# read stake data from summary excel file with annual stake data (this can be adapted to use another version of the data.
+# it needs lat,lon coordinates, elevation, and the annual stake value.)
+fn = '/Users/leahartl/Desktop/JAM/Pegel_Jam.xlsx'
+
+
+## to get probe and pit point data for the winter mass balance:
+# shapefile with spring probe points:
+fnPts_Spring = '/Users/leahartl/Desktop/Jam2026/winter/sondierungen_schacht_20260423.geojson'
+# identify snow pit name in the file. this may have to be adapted if there are separate files for
+# probe points and pits, or some other data format is used.
+pitname = 'SCHACHT! 29'
+# set spring snow pit density (hardcoded value)
+pitdensity = 363 #kg/m3
+# this is an output table from the main mass balance script.
+fnBands = '/Users/leahartl/Desktop/Jam2026/results/table_MB_all.csv'
+# -----
+
 
 def PointsAnnualWGMS(yr, fname, fpts, pitname, pitdensity):
     # stakes:
@@ -34,20 +50,19 @@ def PointsAnnualWGMS(yr, fname, fpts, pitname, pitdensity):
     WGMS['latitude'] = temp['Y_coord']
     WGMS['longitude'] = temp['X_coord']
     WGMS['elevation'] = temp['Z_value']
-    # balance in m w.e.!
-    WGMS['balance'] = temp['mm_we_withsnowcorr_300kgm_3_fixed']/1000
+    # balance in m w.e.! check file to ensure the correct column name is used here.
+    WGMS['balance'] = temp['mm_we']/1000
     WGMS['±mwe'] = np.nan
     WGMS['density'] = np.nan
     WGMS['±density'] = np.nan
     WGMS['method'] = 'stake'
     WGMS['balance_code'] = 'annual'
-    WGMS['remarks'] = 'assumed density of ice: 900kg/m3; assumed density of snow at stake positions during final measurements: 300 kg/m3'
-    # print(WGMS)
+    WGMS['remarks'] = 'assumed density of ice: 900kg/m3; no snow at stake positions during final measurements'
 
-    # pits: 
+    # pits:
     pts = pd.DataFrame(columns=WGMS.columns)
     pt = gpd.read_file(fpts)
-    # print(pt)
+
     pts['original_id'] = pt['name']
     pts['time_system'] = 'measured'
     pts['begin_date'] = str(yr-1)+'-10-01'
@@ -76,7 +91,7 @@ def PointsAnnualWGMS(yr, fname, fpts, pitname, pitdensity):
     WGMS['glacier_id'] = 480
     WGMS['year'] = yr
 
-    WGMS.to_csv('/Users/leahartl/Desktop/Jam2025/Tabellen/mass_balance_point_'+str(yr)+'_JAM.csv', index=False)
+    WGMS.to_csv('/Users/leahartl/Desktop/Jam2026/Tabellen/mass_balance_point_'+str(yr)+'_JAM.csv', index=False)
     # print(WGMS)
 
 
@@ -90,12 +105,12 @@ def BandsAnnualWGMS(yr, fname):
     WGMS = pd.DataFrame(columns=['glacier_name', 'glacier_id', 'year'])
     WGMS['lower_elevation'] = temp.Höhenstufe - 25
     WGMS['upper_elevation'] = temp.Höhenstufe + 25
-    WGMS['area m2'] = temp['Fläche']*1e6
-    WGMS['winter_balance'] = temp['b_wi']*1e-3
+    WGMS['area m2'] = temp['Fläche_km2']*1e6
+    WGMS['winter_balance'] = temp['b_wi_m']#*1e-3
     WGMS['±mwe_wb'] = np.nan
-    WGMS['summer_balance'] = temp['b_so']*1e-3
+    WGMS['summer_balance'] = temp['b_so_m']#*1e-3
     WGMS['±mwe_sb'] = np.nan
-    WGMS['annual_balance'] = temp['b']*1e-3
+    WGMS['annual_balance'] = temp['b_m']#*1e-3
     WGMS['±mwe'] = np.nan
     WGMS['remarks'] = ''
 
@@ -105,7 +120,7 @@ def BandsAnnualWGMS(yr, fname):
     WGMS['glacier_id'] = 480
     WGMS['year'] = yr
 
-    WGMS.to_csv('/Users/leahartl/Desktop/Jam2025/Tabellen/mass_balance_band_'+str(yr)+'_JAM.csv', index=False)
+    WGMS.to_csv('/Users/leahartl/Desktop/Jam2026/Tabellen/mass_balance_band_'+str(yr)+'_JAM.csv', index=False)
     
 
 
@@ -152,7 +167,7 @@ def GlacierwideAnnualWGMS(yr, fname):
     WGMS['year'] = yr
     WGMS['outline_id'] = np.nan
     print(WGMS)
-    WGMS.to_csv('/Users/leahartl/Desktop/Jam2025/Tabellen/mass_balance_'+str(yr)+'_JAM.csv', index=False)
+    WGMS.to_csv('/Users/leahartl/Desktop/Jam2026/Tabellen/mass_balance_'+str(yr)+'_JAM.csv', index=False)
     
 
 
@@ -169,18 +184,18 @@ def BandsAnnualPangaea(yr, fname):
     pan['upper_elevation'] = temp.Höhenstufe + 25
     pan['date_begin'] = yr - 1
     pan['date_end'] = yr
-    pan['Saz'] = temp.Fläche.values
-    pan['Baz'] = temp.balance.values
-    pan['baz'] = temp.b.values
-    pan['bsaz'] = temp.b_so.values
-    pan['bwaz'] = temp.b_wi.values
+    pan['Saz'] = temp.Fläche_km2.values
+    pan['Baz'] = temp.balance_m3.values
+    pan['baz'] = temp.b_m.values
+    pan['bsaz'] = temp.b_so_m.values
+    pan['bwaz'] = temp.b_wi_m.values
 
     print(pan)
 
-    pan.to_csv('/Users/leahartl/Desktop/Jam2025/Tabellen/pangaea_'+str(yr)+'_JAM.csv', index=False)
+    pan.to_csv('/Users/leahartl/Desktop/Jam2026/Tabellen/pangaea_'+str(yr)+'_JAM.csv', index=False)
     
 
-# BandsAnnualPangaea(yr, fnBands)
+BandsAnnualPangaea(yr, fnBands)
 
 GlacierwideAnnualWGMS(yr, fnBands)
 

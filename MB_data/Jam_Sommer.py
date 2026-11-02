@@ -33,12 +33,12 @@ outline_dir = '/Users/leahartl/Desktop/Jam2026/sommer/MB_shapes/'
 # this sets up the code to loop through the different glacier parts
 sufs = ['_all', '_west', '_central', '_east']
 # file with stake data:
-stakesfn = '/Users/leahartl/Desktop/Jam2026/sommer/Pegel2026_elev_abl.geojson'
+stakesfn = '/Users/leahartl/Desktop/Jam2026/sommer/Pegel2026.geojson'
 # name of column in stakes file which contains ablation in m w.e.
 # Viole: Change to "mb" or whatever you named the column! If this value is in cm w.e., 
 # you need to change it to meters either here in the script or in the file. 
 # The script assumes it is in meters.
-param = 'abl_m_we'
+param = 'mb'
 
 # main outline - based on orthophoto of previous year
 zones1fn = '/Users/leahartl/Desktop/Jam2026/sommer/MB_shapes/2026_all.geojson'
@@ -64,14 +64,14 @@ def makeMB_Map(zones, suffix, curyear, stakesfn, param, raster):
     norm = mcolors.BoundaryNorm(levels, cmap.N)
 
     # convert to m
-    zones['mb'] = zones['mb']/100
+    #zones['mb'] = zones['mb']/100
 
     DEM = rxr.open_rasterio(raster)
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     
 
-    zones.plot(ax=ax, column='mb', alpha=1, cmap=cmap, norm=norm, legend=False, zorder=1)
+    zones.plot(ax=ax, column=param, alpha=1, cmap=cmap, norm=norm, legend=False, zorder=1)
     CS = DEM.squeeze().plot.contour(ax=ax, colors='grey', levels=np.arange(2000, 3000, 50), linewidths=0.5)
     ax.clabel(CS, inline=1, fontsize=10)
 
@@ -81,7 +81,7 @@ def makeMB_Map(zones, suffix, curyear, stakesfn, param, raster):
         # stakes file with elevation and WW:
         stakes = gpd.read_file(stakesfn)
         # check that values have the right unit and are negative!
-        stakes['melt'] = stakes[param].round(decimals=2)*-1 
+        stakes['melt'] = stakes[param].round(decimals=2)#*-1 
         stakes.to_crs(epsg=31254, inplace=True)
         stakes.plot(column='melt', ax=ax, cmap=cmap, norm=norm, legend=False, label='WW [m w.e.]', edgecolor='k')
 
@@ -214,6 +214,8 @@ def makeMBFig_main(data, suffix):
 
 # plot the individual pieces of the glacier (like Vernagtferner reports)
 def makeMBPlot_v2(zones, zones1, data, suffix, curyear):
+    zones.geometry = zones.geometry.make_valid()
+    zones1.geometry = zones1.geometry.make_valid()
     # drop last line
     data = data.dropna()
 
@@ -324,7 +326,7 @@ def mainMassBalance(zones, bw):
     summer_df = zones[['mb', 'elev', 'area']]
     # summer_df = summer_df.rename(columns={'elev': 'Höhenstufe', 'area': 'Fläche'})
     summer_df = summer_df.sort_values(by='elev')
-    summer_df['balance_m3'] = summer_df['area'] * summer_df['mb'] / 100.0 # m³ - mb in zones file is in cm!!
+    summer_df['balance_m3'] = summer_df['area'] * summer_df['mb'] #/ 100.0 # m³ - mb in zones file is in cm!!
 
     # compute some summary values
     datmax = summer_df.shape[0]
@@ -388,6 +390,7 @@ for suffix in sufs:
     # zones = gpd.read_file('/Users/leahartl/Desktop/Jam2025/sommer/MB_viole/JAM_mb_2025_1.geojson')
     zonesfn = outline_dir+str(curyear)+suffix+'.geojson'
     zones = gpd.read_file(zonesfn)
+    zones.geometry = zones.geometry.make_valid()
     # reproject to crs with true area (don't use lat/lon to compute area)
     zones = zones.to_crs(epsg=31254)
 
