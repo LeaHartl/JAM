@@ -31,13 +31,15 @@ def makeTableAnnual(yrs, fname, gl):
         # 4 stands for estimated from closest measurement
         basics['position_quality'] = 4
 
-        if yr < 2025:
+        if yr < 2027:
         # raw mass balance in cm ice is not available for the fixed dates because only the final
         # corrected values was documented.
             basics['mb_raw'] = np.nan 
-
-        if yr >= 2025:
-            basics['mb_raw'] = temp['mm_WE_nosnow_floating']
+        ## to refine. some iformation available but script needs to be adapted
+        # if yr == 2025:
+        #     basics['mb_raw'] = temp['mm_WE_nosnow_floating']
+        # if yr == 2026:
+        #     basics['mb_raw'] = temp['m_WE']*100
 
         if yr < 2020:
             basics['source'] = 'AF' 
@@ -244,16 +246,17 @@ def writetofile(dat, what, gl, forheader, y):
 
 
 gl = 'JAM'
+yr = 2026
 # read stakes excel file (annual data)
 fn = '/Users/leahartl/Desktop/JAM/Pegel_Jam.xlsx'
-yrs = np.arange(1989, 2026)
+yrs = np.arange(1989, yr+1)
 
 
 
 # pits: available for 1989-2016
 yrsPITS = []
 
-folder_pits = '/Users/leahartl/Desktop/LTER/AGM/JAM/Shapefiles Schneeschächte Jamtalferner'
+folder_pits = '/Users/leahartl/Desktop/JAM/Shapefiles Schneeschächte Jamtalferner'
 
 # # are these fall or spring pits?? assuming fall but not sure. 
 pits_fixed_annual = makeTablePits_fixed(yrs, folder_pits, gl)
@@ -270,7 +273,7 @@ data_annual_u = unc.uncertainties(data_annual, 'annual')
 print(data_annual_u)
 
 
-writetofile(data_annual_u, 'annual', gl, 'Jamtalferner', '2025')
+writetofile(data_annual_u, 'annual', gl, 'Jamtalferner', str(yr))
 
 
 
