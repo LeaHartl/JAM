@@ -16,10 +16,10 @@ from shapely.geometry import Point
 # old reports used this file.
 # klima = '/Users/leahartl/Desktop/JAM/klima.csv'
 
-fn_Jam_temp = '/Users/leahartl/Desktop/Jam2025/[EXT]_AW__Jamtal_Totalisator_&_Stationsdaten/LT115451.csv'
-fn_Jam_pcpn = '/Users/leahartl/Desktop/Jam2025/[EXT]_AW__Jamtal_Totalisator_&_Stationsdaten/N115451.csv'
+fn_Jam_temp = '/Users/leahartl/Desktop/Jam2026/AWS_huette/LT115451.csv'
+fn_Jam_pcpn = '/Users/leahartl/Desktop/Jam2026/AWS_huette/N115451.csv'
 
-curyear = 2025
+curyear = 2026
 
 def day_of_water_year(some_date):
     some_date = some_date.replace(tzinfo=None)
@@ -48,14 +48,19 @@ def seasonStats(summer):
 
 
 def readHDdata(fname, param, skip):
-    out = pd.read_csv(fname, delimiter=';', skiprows=skip, na_values='Lücke',
-                      names=['date', param], encoding='unicode_escape', decimal=',')
+    out = pd.read_csv(fname, delimiter=';', skiprows=skip, na_values='Lücke       ',
+                      encoding='unicode_escape', decimal=',', names=['date', param, 'empty'], )
+
+    out[param] = out[param].str.strip()
+    out[param] = out[param].str.replace(',', '.')
+    out[param] = out[param].str.replace('Lücke', '')
+
     out[param] = pd.to_numeric(out[param])
 
     out.set_index('date', inplace=True)
-    # print(out)
-    out.index = pd.to_datetime(out.index, format='%d.%m.%Y %H:%M:%S   ')
 
+    out.index = pd.to_datetime(out.index, format='%d.%m.%Y %H:%M:%S   ')
+    out = out.drop(columns='empty')
 
     if param == 'N':
         monthly = out.resample('ME').sum()
@@ -75,7 +80,7 @@ def loadData(curyear):
 
     # add water year
     station_df['WY'] = station_df.index.year
-    station_df['WY'].loc[station_df.index.month >= 10] += 1
+    station_df.loc[station_df.index.month >= 10, 'WY'] += 1
     # add day of year
     station_df['doy'] = station_df.index.dayofyear
     station_df['doy'] = station_df.index.dayofyear
@@ -142,9 +147,9 @@ def loadData(curyear):
     climtable[['tl_mittel', 't_normal', 't_dev']] = climtable[['tl_mittel', 't_normal', 't_dev']].astype(float).round(decimals=1)
     climtable[['rr', 'rr_normal', 'rr_dev', 'rr_dev_perc']] = climtable[['rr', 'rr_normal', 'rr_dev', 'rr_dev_perc']].round(decimals=0).astype(int)
 
-    print(climtable)
-    # save to latex
-    climtable.to_latex('/Users/leahartl/Desktop/Jam2025/Bericht/klima_galtuer.txt')
+    # save to latex and csv
+    climtable.to_latex('/Users/leahartl/Desktop/Jam2026/results/klima_galtuer.txt')
+    climtable.to_csv('/Users/leahartl/Desktop/Jam2026/results/klima_galtuer.csv')
 
     return(cur_year, cur_yearM, climtable)
 
@@ -153,15 +158,15 @@ def makeClimFig(cur_year, cur_yearM, dailyJam, monthlyJam, curyear):
 
     fig, ax = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
     ax = ax.flatten()
-    ax[0].plot(dailyJam.index.values, dailyJam['T'].values, color='k', linewidth=1, label='AWS Jamtalhütte, 2024/25')
-    ax[0].plot(cur_year.index, cur_year['tl_mittel'], color='grey', linewidth=0.5,label='Galtür, 2024/25')
+    ax[0].plot(dailyJam.index.values, dailyJam['T'].values, color='k', linewidth=1, label='AWS Jamtalhütte, '+str(curyear-1)+'-'+str(curyear))
+    ax[0].plot(cur_year.index, cur_year['tl_mittel'], color='grey', linewidth=0.5,label='Galtür, '+str(curyear-1)+'-'+str(curyear))
     ax[0].plot(cur_year.index, cur_year['t_normal'], color='grey', label='Galtür, Klimamittel 1991-2020')
     
 
     ax[0].fill_between(cur_year.index, cur_year['t_normal'], cur_year['tl_mittel'], 
-                       where=(cur_year['tl_mittel'] >= cur_year['t_normal']), color='red', alpha=0.3, label='positive T. Abweichung 2025, Galtür')
+                       where=(cur_year['tl_mittel'] >= cur_year['t_normal']), color='red', alpha=0.3, label='positive T. Abweichung '+str(curyear)+', Galtür')
     ax[0].fill_between(cur_year.index, cur_year['t_normal'], cur_year['tl_mittel'], 
-                       where=(cur_year['tl_mittel'] < cur_year['t_normal']), color='blue', alpha=0.3, label='negative T. Abweichung 2025, Galtür')
+                       where=(cur_year['tl_mittel'] < cur_year['t_normal']), color='blue', alpha=0.3, label='negative T. Abweichung '+str(curyear)+', Galtür')
 
     # this sets the formating of the dates for the axis labels
     myFmt = mdates.DateFormatter('%Y-%b')
@@ -176,8 +181,8 @@ def makeClimFig(cur_year, cur_yearM, dailyJam, monthlyJam, curyear):
     ax[0].legend(loc='upper left', bbox_to_anchor=(0.58, 0.4))
     ax[0].set_ylabel('Lufttemperatur Tagesmittel (°C)', fontsize=12)
 
-    ax[1].bar(monthlyJam.index - pd.DateOffset(days=22), monthlyJam['N'], color='skyblue',  width=7, label='AWS Jamtalhütte, monatlicher Niederschlag 2024/25')
-    ax[1].bar(cur_yearM.index - pd.DateOffset(days=15), cur_yearM['rr'], color='k',  width=7, label='Galtür, monatlicher Niederschlag 2024/25')
+    ax[1].bar(monthlyJam.index - pd.DateOffset(days=22), monthlyJam['N'], color='skyblue',  width=7, label='AWS Jamtalhütte, monatlicher Niederschlag '+str(curyear-1)+'-'+str(curyear))
+    ax[1].bar(cur_yearM.index - pd.DateOffset(days=15), cur_yearM['rr'], color='k',  width=7, label='Galtür, monatlicher Niederschlag '+str(curyear-1)+'-'+str(curyear))
     ax[1].bar(cur_yearM.index - pd.DateOffset(days=8), cur_yearM['rr_normal'], color='grey', width=7, label='Galtür, Klimamittel 1991-2020')
     
     ax[1].set_xlim(pd.to_datetime(str(curyear-1)+'-10-01'), pd.to_datetime(str(curyear)+'-09-30'))
@@ -192,10 +197,10 @@ def makeClimFig(cur_year, cur_yearM, dailyJam, monthlyJam, curyear):
 
     ax[0].text(pd.to_datetime(str(curyear)+'-09-10'), 22, 'a', fontsize=10,
                bbox=dict(boxstyle="square,pad=0.3",fc="lightgrey", ec="grey", lw=2))
-    ax[1].text(pd.to_datetime(str(curyear)+'-09-10'), 325, 'b', fontsize=10,
+    ax[1].text(pd.to_datetime(str(curyear)+'-09-10'), 150, 'b', fontsize=10,
                bbox=dict(boxstyle="square,pad=0.3",fc="lightgrey", ec="grey", lw=2))
 
-    fig.savefig('/Users/leahartl/Desktop/Jam2025/Bericht/ClimFig_'+str(curyear)+'.png', dpi=200, bbox_inches='tight')
+    fig.savefig('/Users/leahartl/Desktop/Jam2026/results/ClimFig_'+str(curyear)+'.png', dpi=200, bbox_inches='tight')
 
 
 # make Jam table: 
@@ -232,7 +237,7 @@ def makeJamTable(outT, outN, climtable, curyear):
 
     print(fortable)
     # save to latex
-    fortable.to_latex('/Users/leahartl/Desktop/Jam2025/Bericht/klima_jam.txt')
+    fortable.to_latex('/Users/leahartl/Desktop/Jam2026/results/klima_jam.txt')
 
     # stop
     return(dailyJam, monthlyJam)
@@ -245,7 +250,7 @@ def Regenmesser():
     regen = pd.read_excel(fn, index_col=0, header=1, usecols=[0,1,2,3,4,5,6,7])
     regen.index=regen.index.strftime('%d.%m.%Y')
     print(regen)
-    regen.to_latex('/Users/leahartl/Desktop/Jam2025/Bericht/Regenmesser.txt', float_format="%.2f")
+    regen.to_latex('/Users/leahartl/Desktop/Jam2026/reults/Regenmesser.txt', float_format="%.2f")
 
 
 # Regenmesser()
@@ -255,8 +260,10 @@ def Regenmesser():
 cur_year, cur_yearM, climtable = loadData(curyear)
 
 # load HD data for Jamtalhütte AWS (ask HD to send this data)
-outN, monthlyN = readHDdata(fn_Jam_pcpn, 'N', 24)
-outT, monthlyT = readHDdata(fn_Jam_temp, 'T', 24)
+# count the number of rows that need to be skipped in the file (usually 23) and adjust this here!
+outN, monthlyN = readHDdata(fn_Jam_pcpn, 'N', 23)
+
+outT, monthlyT = readHDdata(fn_Jam_temp, 'T', 23)
 
 
 
