@@ -75,7 +75,7 @@ def PointsAnnualWGMS(yr, fname, fpts, pitname, pitdensity, springdate):
     pts['longitude'] = pt['lon']
     pts['elevation'] = pt['elev']
 
-    pts['balance'] = pt['WW_m'].round(decimals=0).astype(int)
+    pts['balance'] = pt['WW_m']
     pts['±mwe'] = np.nan
     pts['density'] = np.nan
     pts['±density'] = np.nan
@@ -94,7 +94,7 @@ def PointsAnnualWGMS(yr, fname, fpts, pitname, pitdensity, springdate):
     WGMS['year'] = yr
 
     WGMS.to_csv('/Users/leahartl/Desktop/Jam2026/Tabellen/mass_balance_point_'+str(yr)+'_JAM.csv', index=False)
-    # print(WGMS)
+    WGMS.to_excel('/Users/leahartl/Desktop/Jam2026/Tabellen/mass_balance_point_'+str(yr)+'_JAM.xlsx', index=False)
 
 
 def BandsAnnualWGMS(yr, fname):
@@ -123,7 +123,7 @@ def BandsAnnualWGMS(yr, fname):
     WGMS['year'] = yr
 
     WGMS.to_csv('/Users/leahartl/Desktop/Jam2026/Tabellen/mass_balance_band_'+str(yr)+'_JAM.csv', index=False)
-    
+    WGMS.to_csv('/Users/leahartl/Desktop/Jam2026/Tabellen/mass_balance_band_'+str(yr)+'_JAM.xlsx', index=False)
 
 
 def GlacierwideAnnualWGMS(yr, fname):
@@ -133,7 +133,9 @@ def GlacierwideAnnualWGMS(yr, fname):
     temp = temp.loc[temp.Höhenstufe.isna()]
     print(temp) 
 
-
+    # fog_sheet = pd.read_excel(fog, sheet_name='mass_balance')
+    # print(fog_sheet.columns)
+    # stop
     WGMS = pd.DataFrame(columns=['glacier_name','glacier_id', 'outline_id', 'year'], index=[0])
    
     WGMS['time_system'] = 'fixed'
@@ -143,6 +145,7 @@ def GlacierwideAnnualWGMS(yr, fname):
     WGMS['±days_mid'] = np.nan
     WGMS['end_date'] = str(yr)+'-09-30'
     WGMS['±days_end'] = np.nan
+
     WGMS['ela_position'] = 'above'
     WGMS['ela'] = np.nan
     WGMS['±ela_m'] = np.nan
@@ -168,8 +171,10 @@ def GlacierwideAnnualWGMS(yr, fname):
     WGMS['glacier_id'] = 480
     WGMS['year'] = yr
     WGMS['outline_id'] = np.nan
-    print(WGMS)
+    print(WGMS.columns)
+    #stop
     WGMS.to_csv('/Users/leahartl/Desktop/Jam2026/Tabellen/mass_balance_'+str(yr)+'_JAM.csv', index=False)
+    WGMS.to_excel('/Users/leahartl/Desktop/Jam2026/Tabellen/mass_balance_'+str(yr)+'_JAM.xlsx', index=False)
     
 
 
@@ -197,12 +202,13 @@ def BandsAnnualPangaea(yr, fname):
     pan.to_csv('/Users/leahartl/Desktop/Jam2026/Tabellen/pangaea_'+str(yr)+'_JAM.csv', index=False)
     
 
-BandsAnnualPangaea(yr, fnBands)
+
 
 GlacierwideAnnualWGMS(yr, fnBands)
+
 
 PointsAnnualWGMS(yr, fn, fnPts_Spring, pitname, pitdensity, springdate)
 
 BandsAnnualWGMS(yr, fnBands)
-
+BandsAnnualPangaea(yr, fnBands)
 
